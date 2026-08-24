@@ -1,0 +1,14 @@
+[Unit]
+Description=Donerup AD pivot iptables enforcement
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/donerup/network
+ExecStart=/opt/donerup/network/setup-ad-pivot.sh
+ExecStop=/sbin/iptables -F DONERUP_AD_PIVOT
+
+[Install]
+WantedBy=multi-user.target
