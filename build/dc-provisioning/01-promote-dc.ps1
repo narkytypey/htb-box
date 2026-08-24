@@ -7,3 +7,4 @@ Install-ADDSForest `
     -InstallDns:$true `
     -SafeModeAdministratorPassword (ConvertTo-SecureString "R00tP@ssw0rd2026!" -AsPlainText -Force) `
     -Force:$true
+# The VM reboots automatically to complete promotion.
