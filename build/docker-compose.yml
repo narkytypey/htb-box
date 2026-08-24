@@ -6,8 +6,14 @@ services:
     environment:
       LDAP_MODE: mock
       FLASK_SECRET_KEY: dev-only-not-for-prod
+    cap_add:
+      - NET_ADMIN
+    extra_hosts:
+      - "dc01.donerup.htb:10.10.20.10"
     networks:
-      - dmz
+      dmz: {}
+      internal-ad:
+        ipv4_address: 172.28.0.10
 
   legacy-auth-db:
     build: ./legacy-auth-db
@@ -19,4 +25,12 @@ services:
 
 networks:
   dmz:
+    name: dmz
     driver: bridge
+  internal-ad:
+    name: internal-ad
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
