@@ -33,7 +33,31 @@ fi
 
 # Idempotency: (re)create our chain clean every run.
 iptables -N DONERUP_AD_PIVOT 2>/dev/null || iptables -F DONERUP_AD_PIVOT
-iptables -C FORWARD -j DONERUP_AD_PIVOT 2>/dev/null || iptables -I FORWARD -j DONERUP_AD_PIVOT
+
+# Hook into DOCKER-USER, not FORWARD directly. Docker's own iptables
+# reconciliation (e.g. across a daemon restart) may reshuffle rules
+# inserted straight into FORWARD, but it never rewrites DOCKER-USER's
+# contents -- that chain exists specifically as the stable, documented
+# extension point for user rules that must survive Docker's own network
+# management (spec section 6.3 reset-resilience). The FORWARD -> DOCKER-USER
+# jump carries no interface filter, so it is traversed for ALL forwarded
+# traffic -- Docker-managed or not -- including Task 4's non-Docker
+# ip-netns veth-pair test traffic.
+#
+# Ensure DOCKER-USER exists even if Docker hasn't finished its own setup
+# yet: After=docker.service only guarantees the daemon has started, not
+# that it has installed its chains. Creating it ourselves is harmless --
+# Docker only ever ensures the chain exists and never rewrites its
+# contents, so there is no conflict if Docker creates/adopts it later.
+iptables -N DOCKER-USER 2>/dev/null || true
+
+# Ensure FORWARD actually jumps to DOCKER-USER. Without this, if Docker
+# hasn't installed its own jump yet, our rules would sit in a chain that
+# nothing traverses -- enforcement silently absent, exactly the class of
+# silent failure this whole plan is designed against.
+iptables -C FORWARD -j DOCKER-USER 2>/dev/null || iptables -I FORWARD -j DOCKER-USER
+
+iptables -C DOCKER-USER -j DONERUP_AD_PIVOT 2>/dev/null || iptables -I DOCKER-USER -j DONERUP_AD_PIVOT
 
 # 1. Explicit deny: the HTB VPN client subnet never reaches the AD VLAN directly.
 iptables -A DONERUP_AD_PIVOT -s "$VPN_CLIENT_SUBNET" -d "$AD_VLAN_SUBNET" -j DROP
