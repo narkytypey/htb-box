@@ -1,6 +1,9 @@
 FROM python:3.12-slim
 
-RUN useradd --create-home --shell /usr/sbin/nologin appuser
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gosu iproute2 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --shell /usr/sbin/nologin appuser
 
 WORKDIR /app
 
@@ -14,8 +17,6 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
     && chown -R appuser:appuser /app /home/appuser
-
-USER appuser
 
 EXPOSE 5000
 
