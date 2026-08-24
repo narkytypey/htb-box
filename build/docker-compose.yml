@@ -1,0 +1,22 @@
+services:
+  web:
+    build: ./web
+    ports:
+      - "8080:5000"
+    environment:
+      LDAP_MODE: mock
+      FLASK_SECRET_KEY: dev-only-not-for-prod
+    networks:
+      - dmz
+
+  legacy-auth-db:
+    build: ./legacy-auth-db
+    environment:
+      MYSQL_ROOT_PASSWORD: "Summer2019!"
+      MYSQL_DATABASE: legacy_auth
+    networks:
+      - dmz
+
+networks:
+  dmz:
+    driver: bridge
