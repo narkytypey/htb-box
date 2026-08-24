@@ -35,3 +35,51 @@ def test_verified_or_breakout_authenticates_as_administrator_over_http():
     )
     assert resp.status_code == 200
     assert b"Welcome, administrator" in resp.data
+
+
+def _login_as_administrator(client):
+    return client.post(
+        "/login",
+        data={
+            "username": "administrator）（|（sAMAccountName=administrator",
+            "password": "）",
+        },
+    )
+
+
+def test_admin_panel_blocks_naive_ssti_payload():
+    client = make_app().test_client()
+    _login_as_administrator(client)
+    resp = client.post("/admin/report-template", data={"template": "{{ ''.__class__ }}"})
+    assert resp.status_code == 400
+
+
+def test_admin_panel_renders_verified_ssti_bypass():
+    client = make_app().test_client()
+    _login_as_administrator(client)
+    resp = client.post(
+        "/admin/report-template",
+        data={"template": "{{''['_'~'_cla'~'ss_'~'_']}}"},
+    )
+    assert resp.status_code == 200
+    assert b"class 'str'" in resp.data
+
+
+def test_admin_panel_renders_realistic_prose_template():
+    client = make_app().test_client()
+    _login_as_administrator(client)
+    resp = client.post(
+        "/admin/report-template",
+        data={"template": "Hello {{name}}, your report is ready."},
+    )
+    assert resp.status_code == 200
+
+
+def test_regular_user_cannot_reach_admin_panel():
+    client = make_app().test_client()
+    client.post(
+        "/login",
+        data={"username": "jdoe", "password": "CorrectHorseBattery1"},
+    )
+    resp = client.get("/admin/report-template")
+    assert resp.status_code == 403

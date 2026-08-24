@@ -2,6 +2,7 @@ from flask import Flask, request, session, redirect, url_for
 
 from .sanitize import sanitize
 from .ldap_auth import authenticate, is_privileged
+from .ssti_render import render_report_template
 
 
 def create_app(ldap_connection_factory, secret_key="dev-only-not-for-prod"):
@@ -39,5 +40,21 @@ def create_app(ldap_connection_factory, secret_key="dev-only-not-for-prod"):
         if "username" not in session:
             return redirect(url_for("login_form"))
         return f"Welcome, {session['username']}"
+
+    @app.route("/admin/report-template", methods=["GET", "POST"])
+    def report_template():
+        if not session.get("is_privileged"):
+            return "Forbidden", 403
+        if request.method == "GET":
+            return (
+                '<form method="post"><textarea name="template"></textarea>'
+                '<button type="submit">Render</button></form>'
+            )
+        raw_template = request.form.get("template", "")
+        try:
+            rendered = render_report_template(raw_template, {})
+        except ValueError:
+            return "Blocked pattern detected", 400
+        return rendered
 
     return app
