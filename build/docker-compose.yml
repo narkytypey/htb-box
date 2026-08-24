@@ -9,11 +9,11 @@ services:
     cap_add:
       - NET_ADMIN
     extra_hosts:
-      - "dc01.donerup.htb:10.10.20.10"
+      - "dc01.donerup.htb:${DC_IP:?set in network/config.env}"
     networks:
       dmz: {}
       internal-ad:
-        ipv4_address: 172.28.0.10
+        ipv4_address: ${WEB_INTERNAL_AD_IP:?set in network/config.env}
 
   legacy-auth-db:
     build: ./legacy-auth-db
@@ -33,4 +33,4 @@ networks:
     internal: true
     ipam:
       config:
-        - subnet: 172.28.0.0/24
+        - subnet: ${INTERNAL_AD_SUBNET:?set in network/config.env}
