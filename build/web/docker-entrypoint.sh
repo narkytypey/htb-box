@@ -7,8 +7,8 @@ if [ ! -f /home/appuser/user.txt ]; then
     chown appuser:appuser /home/appuser/user.txt
 fi
 
-# The app needs this route for its own LDAP bind once LDAP_MODE=real
-# (Plan 3) -- it is not added specifically to enable a pivot tool, though
+# The app needs this route for its own LDAP bind once real-LDAP mode is
+# active (Plan 3) -- it is not added specifically to enable a pivot tool, though
 # a pivot tool riding inside the container uses the same kernel route.
 #
 # AD_VLAN_SUBNET / INTERNAL_AD_SUBNET / INTERNAL_AD_GATEWAY_IP come in via

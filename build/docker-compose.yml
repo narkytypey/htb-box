@@ -8,6 +8,7 @@ services:
       AD_VLAN_SUBNET: ${AD_VLAN_SUBNET:?set in network/config.env}
       INTERNAL_AD_SUBNET: ${INTERNAL_AD_SUBNET:?set in network/config.env}
       INTERNAL_AD_GATEWAY_IP: ${INTERNAL_AD_GATEWAY_IP:?set in network/config.env}
+    # Gitignored; create with: cp web/.env.real-ldap.example web/.env.real-ldap
     env_file:
       - ./web/.env.real-ldap
     cap_add:
