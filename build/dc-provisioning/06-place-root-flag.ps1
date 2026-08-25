@@ -3,5 +3,10 @@
 $flag = ([guid]::NewGuid().Guid -replace '-', '')
 $path = "C:\Users\Administrator\Desktop\root.txt"
 Set-Content -Path $path -Value $flag -NoNewline
-icacls $path /inheritance:r /grant:r "Administrators:(R)" "SYSTEM:(F)" | Out-Null
+$aclOutput = icacls $path /inheritance:r /grant:r "Administrators:(R)" "SYSTEM:(F)"
+if ($LASTEXITCODE -ne 0) {
+    Write-Output $aclOutput
+    Write-Output "FAIL: icacls did not apply the ACL lockdown on $path"
+    exit 1
+}
 Write-Output "root.txt written to $path"
