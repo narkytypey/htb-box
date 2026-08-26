@@ -368,15 +368,14 @@ Expected: in this project's current environment, sshd is not listening on the do
 
 ```bash
 certipy find -u svc_ldap -p 'LdapBind2026!Str0ng' -dc-ip 10.10.20.10 -ns 10.10.20.10 -stdout > /tmp/replay-dns-check.out 2>&1
-certipy_rc=$?
-if [ "$certipy_rc" -eq 0 ] && grep -q "donerup.htb" /tmp/replay-dns-check.out; then
+if grep -q "Enumeration output:" /tmp/replay-dns-check.out; then
   echo "PASS: -ns 10.10.20.10 resolves the domain for AD tooling"
 else
-  echo "FAIL: -ns 10.10.20.10 did not resolve donerup.htb (see /tmp/replay-dns-check.out)"
+  echo "FAIL: certipy did not complete AD enumeration via -ns 10.10.20.10 (see /tmp/replay-dns-check.out)"
 fi
 ```
 
-Expected: `PASS: -ns 10.10.20.10 resolves the domain for AD tooling` — confirms the documented `-ns <DC_IP>` workaround (spec §6.4) is sufficient and no extra resolver configuration is needed. If certipy can't reach a DC, `FAIL: -ns 10.10.20.10 did not resolve donerup.htb (see /tmp/replay-dns-check.out)` is expected instead; `/tmp/replay-dns-check.out` now also captures stderr, so it shows the actual reason for the failure (e.g. a connection timeout because no DC is reachable, which is the current state of this lab) rather than an empty file.
+Expected: `PASS: -ns 10.10.20.10 resolves the domain for AD tooling` — confirms the documented `-ns <DC_IP>` workaround (spec §6.4) is sufficient and no extra resolver configuration is needed. The check gates on certipy's own `"Enumeration output:"` marker (only logged once `find` has completed a real LDAP connection and enumeration; on `certipy` v5.0.4, connection/auth failures raise before that point and are only ever logged, never causing a non-zero exit), not on the mere presence of the domain name — a failed run's error text can otherwise mention "donerup.htb" too. If certipy can't reach a DC, `FAIL: certipy did not complete AD enumeration via -ns 10.10.20.10 (see /tmp/replay-dns-check.out)` is expected instead; `/tmp/replay-dns-check.out` captures both stdout and stderr (certipy logs, including its own errors, go to stdout; only the startup banner goes to stderr), so it shows the actual reason for the failure (e.g. a connection timeout because no DC is reachable, which is the current state of this lab) rather than an empty file.
 
 - [ ] **Step 3: Reset resilience — reboot the Docker host and confirm nothing needs manual intervention**
 
