@@ -27,7 +27,9 @@ if (Test-Path $path) {
             try {
                 $sidValue = $ace.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value
             } catch {
-                # IdentityReference could not be translated to a SID; skip it
+                # An untranslatable IdentityReference must not silently vanish from this gate --
+                # emit evidence of the skip rather than let a broad grant hide behind it.
+                Write-Output "WARN: skipping ACE with untranslatable identity '$($ace.IdentityReference)'"
                 continue
             }
 
