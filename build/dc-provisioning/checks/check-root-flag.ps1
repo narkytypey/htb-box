@@ -17,6 +17,12 @@ if (Test-Path $path) {
         if ($domain -and $domain.DomainSID) {
             $domainUsersSid = "$($domain.DomainSID.Value)-513"
             $broadSids[$domainUsersSid] = "Domain Users"
+        } else {
+            # Same principle as the untranslatable-ACE WARN below: a skipped
+            # check must not look identical to a satisfied one. Without this,
+            # a Domain Users grant on root.txt would pass unexamined whenever
+            # AD context isn't available.
+            Write-Output "WARN: could not resolve Domain Users' SID via Get-ADDomain - a Domain Users grant on root.txt would not be detected by this check"
         }
 
         $acl = Get-Acl -Path $path
