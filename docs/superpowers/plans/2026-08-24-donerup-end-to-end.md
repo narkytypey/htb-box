@@ -371,7 +371,7 @@ certipy find -u svc_ldap -p 'LdapBind2026!Str0ng' -dc-ip 10.10.20.10 -ns 10.10.2
 grep -q "donerup.htb" /tmp/replay-dns-check.out && echo "PASS: -ns 10.10.20.10 resolves the domain for AD tooling" || echo "FAIL: -ns 10.10.20.10 did not resolve donerup.htb (see /tmp/replay-dns-check.out)"
 ```
 
-Expected: `PASS: -ns 10.10.20.10 resolves the domain for AD tooling` — confirms the documented `-ns <DC_IP>` workaround (spec §6.4) is sufficient and no extra resolver configuration is needed.
+Expected: `PASS: -ns 10.10.20.10 resolves the domain for AD tooling` — confirms the documented `-ns <DC_IP>` workaround (spec §6.4) is sufficient and no extra resolver configuration is needed. If certipy can't reach a DC, `FAIL: -ns 10.10.20.10 did not resolve donerup.htb (see /tmp/replay-dns-check.out)` is expected instead; `/tmp/replay-dns-check.out` now also captures stderr, so it shows the actual reason for the failure (e.g. a connection timeout because no DC is reachable, which is the current state of this lab) rather than an empty file.
 
 - [ ] **Step 3: Reset resilience — reboot the Docker host and confirm nothing needs manual intervention**
 
