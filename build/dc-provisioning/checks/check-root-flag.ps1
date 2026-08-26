@@ -2,12 +2,48 @@ $path = "C:\Users\Administrator\Desktop\root.txt"
 if (Test-Path $path) {
     $content = (Get-Content $path -Raw).Trim()
     if ($content -match "^[a-f0-9]{32}$") {
-        $aclOutput = (icacls $path) -join "`n"
-        if ($aclOutput -match "Users:|Everyone:|Authenticated Users:|Domain Users:") {
-            Write-Output "FAIL: root.txt ACL grants a broader principal than Administrators/SYSTEM"
+        # SID-based ACL check (locale-independent). icacls prints localized
+        # principal names on non-English Windows, so we resolve each ACE's
+        # IdentityReference to its canonical SID instead of matching text.
+        $administratorsSid = "S-1-5-32-544"
+        $broadSids = @{
+            "S-1-5-32-545" = "BUILTIN\Users"
+            "S-1-1-0"      = "Everyone"
+            "S-1-5-11"     = "Authenticated Users"
+        }
+
+        Import-Module ActiveDirectory -ErrorAction SilentlyContinue
+        $domain = Get-ADDomain -ErrorAction SilentlyContinue
+        if ($domain -and $domain.DomainSID) {
+            $domainUsersSid = "$($domain.DomainSID.Value)-513"
+            $broadSids[$domainUsersSid] = "Domain Users"
+        }
+
+        $acl = Get-Acl -Path $path
+        $matchedBroad = $null
+        $hasAdministrators = $false
+        foreach ($ace in $acl.Access) {
+            $sidValue = $null
+            try {
+                $sidValue = $ace.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value
+            } catch {
+                # IdentityReference could not be translated to a SID; skip it
+                continue
+            }
+
+            if ($broadSids.ContainsKey($sidValue)) {
+                $matchedBroad = "$($broadSids[$sidValue]) ($sidValue)"
+            }
+            if ($sidValue -eq $administratorsSid) {
+                $hasAdministrators = $true
+            }
+        }
+
+        if ($matchedBroad) {
+            Write-Output "FAIL: root.txt ACL grants a broader principal than Administrators/SYSTEM ($matchedBroad)"
             exit 1
-        } elseif ($aclOutput -notmatch "Administrators:") {
-            Write-Output "FAIL: root.txt ACL does not grant Administrators"
+        } elseif (-not $hasAdministrators) {
+            Write-Output "FAIL: root.txt ACL does not grant Administrators (SID $administratorsSid not found)"
             exit 1
         } else {
             Write-Output "PASS: root.txt exists with a 32-char hex flag"
