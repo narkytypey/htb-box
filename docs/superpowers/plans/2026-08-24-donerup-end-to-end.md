@@ -354,7 +354,7 @@ for cred in "administrator:R00tP@ssw0rd2026!" "svc_ldap:LdapBind2026!Str0ng" "jd
   ssh_out="$(sshpass -p "$pass" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=3 "$user@<docker-host-ip>" exit 2>&1)"
   if echo "$ssh_out" | grep -q "Permission denied"; then
     echo "PASS: $user rejected over SSH"
-  elif echo "$ssh_out" | grep -qE "Connection refused|No route to host|Network is unreachable|Operation timed out|Connection timed out"; then
+  elif echo "$ssh_out" | grep -qE "Connection refused|No route to host|Network is unreachable|Operation timed out|Connection timed out|Could not resolve hostname|Name or service not known|Temporary failure in name resolution"; then
     echo "SKIP: sshd not reachable at <docker-host-ip>:22 - cannot test whether $user is rejected"
   else
     echo "FAIL: $user was not rejected over SSH (unexpected result: ${ssh_out:-<no output - connection appears to have succeeded>})"
@@ -368,7 +368,12 @@ Expected: in this project's current environment, sshd is not listening on the do
 
 ```bash
 certipy find -u svc_ldap -p 'LdapBind2026!Str0ng' -dc-ip 10.10.20.10 -ns 10.10.20.10 -stdout > /tmp/replay-dns-check.out 2>&1
-grep -q "donerup.htb" /tmp/replay-dns-check.out && echo "PASS: -ns 10.10.20.10 resolves the domain for AD tooling" || echo "FAIL: -ns 10.10.20.10 did not resolve donerup.htb (see /tmp/replay-dns-check.out)"
+certipy_rc=$?
+if [ "$certipy_rc" -eq 0 ] && grep -q "donerup.htb" /tmp/replay-dns-check.out; then
+  echo "PASS: -ns 10.10.20.10 resolves the domain for AD tooling"
+else
+  echo "FAIL: -ns 10.10.20.10 did not resolve donerup.htb (see /tmp/replay-dns-check.out)"
+fi
 ```
 
 Expected: `PASS: -ns 10.10.20.10 resolves the domain for AD tooling` — confirms the documented `-ns <DC_IP>` workaround (spec §6.4) is sufficient and no extra resolver configuration is needed. If certipy can't reach a DC, `FAIL: -ns 10.10.20.10 did not resolve donerup.htb (see /tmp/replay-dns-check.out)` is expected instead; `/tmp/replay-dns-check.out` now also captures stderr, so it shows the actual reason for the failure (e.g. a connection timeout because no DC is reachable, which is the current state of this lab) rather than an empty file.
