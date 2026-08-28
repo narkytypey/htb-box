@@ -30,4 +30,12 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
 EXPOSE 5000
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "wsgi:app"]
+# --workers 2 (not gunicorn's default of 1): the /admin/branding SSRF
+# fetches back into this same container on 127.0.0.1:5000 (spec S5/S6). With
+# a single sync worker, the outer /admin/branding request occupies the only
+# worker and the inner loopback request can never be accepted -- a
+# self-deadlock that resolves only via the fetch's own timeout, discovered
+# by the live integration smoke test (build/web/tests/integration_smoke.py)
+# timing out instead of getting a real response. Two workers let the outer
+# request hold one while the inner loopback request is served by the other.
+CMD ["gunicorn", "--workers", "2", "--bind", "0.0.0.0:5000", "wsgi:app"]
