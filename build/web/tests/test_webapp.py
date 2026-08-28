@@ -148,14 +148,48 @@ def test_admin_panel_renders_realistic_prose_template():
     assert resp.status_code == 200
 
 
-def test_regular_user_cannot_reach_admin_panel():
+def test_report_template_rejects_non_loopback_requests_even_as_administrator():
+    """The old gate was session["is_privileged"]; the new one is loopback-
+    only (spec Approach A). An app-admin session must no longer be
+    sufficient on its own -- proving that is the point of this test."""
     client = make_app().test_client()
-    client.post(
-        "/login",
-        data={"username": "jdoe", "password": "SogukDonerAyran7"},
+    _login_as_administrator(client)
+    resp = client.get(
+        "/admin/report-template",
+        environ_overrides={"REMOTE_ADDR": "203.0.113.5"},
     )
-    resp = client.get("/admin/report-template")
     assert resp.status_code == 403
+
+
+def test_report_template_accepts_loopback_requests_with_no_session_at_all():
+    """The real story: an internal batch job calls this locally and was
+    never given a session. remote_addr == 127.0.0.1 is the Flask test
+    client's default, so no override is needed here."""
+    client = make_app().test_client()
+    resp = client.get("/admin/report-template")
+    assert resp.status_code == 200
+
+
+def test_report_template_renders_a_query_string_payload_from_loopback():
+    """This is the actual SSRF exploitation primitive: a GET with the
+    payload in the query string, which is what a server-side
+    requests.get() call (Task 1/2's branding fetcher) forges."""
+    client = make_app().test_client()
+    resp = client.get(
+        "/admin/report-template",
+        query_string={"template": "{{''['_'~'_cla'~'ss_'~'_']}}"},
+    )
+    assert resp.status_code == 200
+    assert b"class 'str'" in resp.data
+
+
+def test_report_template_blocks_a_blacklisted_query_string_payload():
+    client = make_app().test_client()
+    resp = client.get(
+        "/admin/report-template",
+        query_string={"template": "{{ ''.__class__ }}"},
+    )
+    assert resp.status_code == 400
 
 
 class _FakeImageResponse:

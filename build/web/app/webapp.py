@@ -53,11 +53,19 @@ def create_app(ldap_connection_factory, secret_key="dev-only-not-for-prod", http
 
     @app.route("/admin/report-template", methods=["GET", "POST"])
     def report_template():
-        if not session.get("is_privileged"):
-            return "Forbidden", 403
-        if request.method == "GET":
+        # This used to gate on session["is_privileged"]. The real story
+        # now (spec docs/superpowers/specs/2026-08-28-donerup-insane-depth-design.md,
+        # Approach A): a nightly batch job renders ops-requested report
+        # templates by calling this route locally, so nobody ever added
+        # session auth to it -- it is internal-only by IP instead.
+        # request.remote_addr is Werkzeug's actual TCP peer address; it
+        # deliberately never trusts X-Forwarded-For, or a header would
+        # forge this check trivially instead of requiring real SSRF.
+        if request.remote_addr not in ("127.0.0.1", "::1"):
+            return "Forbidden: internal use only", 403
+        raw_template = request.values.get("template")
+        if raw_template is None:
             return render_template("report_template.html")
-        raw_template = request.form.get("template", "")
         try:
             rendered = render_report_template(raw_template, {})
         except ValueError:
