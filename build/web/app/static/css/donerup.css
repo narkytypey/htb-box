@@ -202,6 +202,15 @@ body {
   color: var(--orange);
 }
 
+.portal-nav a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.portal-nav a:hover {
+  color: #fff;
+}
+
 .content-pad {
   padding: 40px 32px 48px;
 }

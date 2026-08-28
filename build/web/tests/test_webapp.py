@@ -156,3 +156,62 @@ def test_regular_user_cannot_reach_admin_panel():
     )
     resp = client.get("/admin/report-template")
     assert resp.status_code == 403
+
+
+class _FakeImageResponse:
+    def __init__(self):
+        self.status_code = 200
+        self.headers = {"Content-Type": "image/png"}
+
+    def iter_content(self, chunk_size):
+        yield b"\x89PNG"
+
+    def close(self):
+        pass
+
+
+class _FakeNonImageResponse:
+    def __init__(self, status_code, body):
+        self.status_code = status_code
+        self.headers = {"Content-Type": "text/html"}
+        self._body = body
+
+    def iter_content(self, chunk_size):
+        yield self._body
+
+    def close(self):
+        pass
+
+
+def _make_app_with_http_get(http_get):
+    return create_app(ldap_connection_factory=mock_ldap_connection, http_get=http_get)
+
+
+def test_branding_requires_an_admin_session():
+    client = _make_app_with_http_get(lambda *a, **kw: _FakeImageResponse()).test_client()
+    resp = client.post("/admin/branding", data={"logo_url": "http://cdn.example.com/logo.png"})
+    assert resp.status_code == 403
+
+
+def test_branding_accepts_a_real_looking_image():
+    client = _make_app_with_http_get(lambda *a, **kw: _FakeImageResponse()).test_client()
+    _login_as_administrator(client)
+    resp = client.post("/admin/branding", data={"logo_url": "http://cdn.example.com/logo.png"})
+    assert resp.status_code == 200
+
+
+def test_branding_leaks_a_snippet_of_a_non_image_response():
+    http_get = lambda *a, **kw: _FakeNonImageResponse(200, b"internal-only-data-12345")
+    client = _make_app_with_http_get(http_get).test_client()
+    _login_as_administrator(client)
+    resp = client.post("/admin/branding", data={"logo_url": "http://127.0.0.1:5000/anything"})
+    assert resp.status_code == 400
+    assert b"internal-only-data-12345" in resp.data
+
+
+def test_branding_form_page_renders_for_an_admin():
+    client = _make_app_with_http_get(lambda *a, **kw: _FakeImageResponse()).test_client()
+    _login_as_administrator(client)
+    resp = client.get("/admin/branding")
+    assert resp.status_code == 200
+    assert b"logo_url" in resp.data

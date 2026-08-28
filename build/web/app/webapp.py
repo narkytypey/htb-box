@@ -1,14 +1,17 @@
+import requests
 from flask import Flask, render_template, request, session, redirect, url_for
 
 from .sanitize import sanitize
 from .ldap_auth import authenticate, is_privileged
 from .ssti_render import render_report_template
+from .branding import LogoFetchError, fetch_logo_preview
 
 
-def create_app(ldap_connection_factory, secret_key="dev-only-not-for-prod"):
+def create_app(ldap_connection_factory, secret_key="dev-only-not-for-prod", http_get=requests.get):
     app = Flask(__name__)
     app.config["SECRET_KEY"] = secret_key
     app.config["LDAP_CONNECTION_FACTORY"] = ldap_connection_factory
+    app.config["HTTP_GET"] = http_get
 
     @app.route("/login", methods=["GET"])
     def login_form():
@@ -60,5 +63,23 @@ def create_app(ldap_connection_factory, secret_key="dev-only-not-for-prod"):
         except ValueError:
             return "Blocked pattern detected", 400
         return rendered
+
+    @app.route("/admin/branding", methods=["GET", "POST"])
+    def branding():
+        if not session.get("is_privileged"):
+            return "Forbidden", 403
+        if request.method == "GET":
+            return render_template("branding.html")
+        logo_url = request.form.get("logo_url", "")
+        try:
+            fetch_logo_preview(logo_url, app.config["HTTP_GET"])
+        except LogoFetchError as exc:
+            return (
+                f"Logo fetch failed: received (status {exc.status_code}): {exc.snippet}",
+                400,
+            )
+        except requests.RequestException as exc:
+            return f"Logo fetch failed: {exc}", 400
+        return render_template("branding.html", success=True)
 
     return app

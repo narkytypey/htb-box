@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Report Branding &mdash; Donerup{% endblock %}
+{% block content %}
+<div class="portal-bar">
+  <div class="mark-row">
+    {% include "_mark.html" %}
+    <span class="wordmark on-dark">Donerup</span>
+  </div>
+  <nav class="portal-nav"><span class="current">Report Branding</span></nav>
+</div>
+<div class="content-pad">
+  <div class="panel-title">Custom report logo</div>
+  <form method="post">
+    <div class="field">
+      <label for="logo_url">Logo URL</label>
+      <input id="logo_url" name="logo_url" type="text" placeholder="https://cdn.example.com/logo.png">
+    </div>
+    <div class="report-actions">
+      <button class="btn secondary" type="submit">Preview logo</button>
+    </div>
+  </form>
+  {% if success %}<p class="panel-title">Logo accepted.</p>{% endif %}
+</div>
+{% endblock %}
