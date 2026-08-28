@@ -1,0 +1,72 @@
+{
+  "repo": "donerup-web",
+  "language": "python",
+  "total_files": 8,
+  "note": "This is a deliberately-vulnerable HTB lab app. Intended exploit chain is LDAP-injection auth bypass (app/sanitize.py fullwidth-char bypass, app/ldap_auth.py filter injection) -> privileged session -> Jinja2 SSTI RCE (app/ssti_blacklist.py + app/ssti_render.py, via documented ~-concat/tab bypass). Scores and reasons below focus on GENUINE UNINTENDED gaps: places where the app's own defenses are weaker than the design spec intended, or where an attacker reaches the SSTI sink with MORE access than the designed chain grants.",
+  "ranked_files": [
+    {
+      "path": "app/ssti_blacklist.py",
+      "score": 5,
+      "lines": 19,
+      "last_modified": "2026-08-24",
+      "reason": "UNINTENDED, empirically confirmed: is_blocked()'s regex `\\{\\{.*?\\}\\}` is not Jinja-lexer-aware and stops at the first literal '}}', including one embedded inside a quoted string. Payload `{{(\"}}\"~\"\").__class__.__mro__[1].__subclasses__()}}` scans as fragment `{{(\"}}` (no banned tokens) yet Jinja's real lexer honors the quoting and evaluates the full expression -- is_blocked() returns False and render_report_template() returns the full class-subtree list with zero context required. This is a COMPLETE blacklist bypass (no tab trick, no space-avoidance cleverness needed) that is strictly stronger than the design-documented '~-concat + tab' bypass -- prove/kill: confirm this reaches os.popen/subprocess via __subclasses__ indexing for full RCE beyond info-disclosure.",
+      "signals": ["regex-based sanitizer vs. real parser (differential)", "non-greedy match terminates early inside quoted string", "verified bypass renders __mro__/__subclasses__ with empty context"]
+    },
+    {
+      "path": "app/webapp.py",
+      "score": 5,
+      "lines": 60,
+      "last_modified": "2026-08-24",
+      "reason": "Single entry-point file: owns both attacker-reachable routes (/login, /admin/report-template), the sole authorization check (`session.get(\"is_privileged\")`), and wires raw request.form input into both the LDAP sink and the SSTI sink. Secondary hypothesis (NOT yet blackbox-confirmed, precondition must be proven before reporting): is_privileged is trusted straight from the Flask session cookie, signed with SECRET_KEY = \"dev-only-not-for-prod\", a static value hardcoded identically in build/docker-compose.yml -- if that key is ever disclosed (source leak, or read from the container post-RCE via the very SSTI sink this file guards) an attacker can forge a session with is_privileged=True and hit /admin/report-template directly, skipping /login and the LDAP-injection step entirely. No blackbox (pre-compromise) path to the key was identified in this pass -- prove/kill: check for any info-disclosure route or debug config that leaks SECRET_KEY without first achieving SSTI; if none exists, this is a persistence/re-entry primitive (survives an LDAP-side fix) rather than an initial-access one.",
+      "signals": ["single route/authz chokepoint", "authz decision trusts session cookie value directly", "static SECRET_KEY shared across shipped deployment config", "no blackbox key-disclosure path found yet"]
+    },
+    {
+      "path": "app/ssti_render.py",
+      "score": 4,
+      "lines": 11,
+      "last_modified": "2026-08-24",
+      "reason": "Sink: uses plain jinja2.Environment (not SandboxedEnvironment) with no autoescape and no execution sandboxing whatsoever -- the ONLY control preventing arbitrary code execution is the flawed is_blocked() regex in app/ssti_blacklist.py. Once that blacklist is bypassed (confirmed above), this function has no independent defense layer -- full attacker-controlled Jinja2 template compiled and rendered.",
+      "signals": ["template compiled from raw user string", "no SandboxedEnvironment", "single point of failure for the blacklist"]
+    },
+    {
+      "path": "app/ldap_auth.py",
+      "score": 4,
+      "lines": 22,
+      "last_modified": "2026-08-24",
+      "reason": "Intended trust boundary: builds an LDAP search filter via str.format() with attacker-controlled username/password substituted directly into `(&(sAMAccountName={username})(info={password}))`, then treats any matching entry as a successful bind (authentication-by-search, not authentication-by-bind). This is the designed LDAP-injection sink -- no additional unintended flaw found here beyond the documented chain, but it remains the critical auth-boundary file and should stay high-priority for any reviewer validating the sanitize.py defense.",
+      "signals": ["format-string filter construction", "authentication-by-search pattern", "memberOf-based privilege derivation"]
+    },
+    {
+      "path": "app/sanitize.py",
+      "score": 4,
+      "lines": 14,
+      "last_modified": "2026-08-24",
+      "reason": "By-design weak sanitizer (commit message: 'add weak LDAP input sanitizer with fullwidth-bypass') -- strips ASCII `( ) * \\` before translating fullwidth Unicode equivalents (（ ） ＊) back into their ASCII forms, so an attacker submitting fullwidth parens survives the strip step and is converted into a real LDAP metacharacter afterward. This is the INTENDED vulnerability enabling the designed auth-bypass chain, not a new finding -- flagged here only so downstream agents don't waste time re-deriving intent from the ordering bug.",
+      "signals": ["blacklist strip-then-translate ordering bug", "Unicode normalization smuggling", "intentional per commit history"]
+    },
+    {
+      "path": "app/ldap_connection.py",
+      "score": 3,
+      "lines": 60,
+      "last_modified": "2026-08-24",
+      "reason": "Connection/bind wiring only -- server host, bind DN, and bind password come from trusted environment variables, not request input, so no direct injection sink here. Note LDAP_MODE defaults to \"real\" (not \"mock\") when unset, meaning a misconfigured deploy silently binds to a live DC rather than failing safe -- an operational/config risk, not a code-level exploitable bug.",
+      "signals": ["env-var-driven config, no user input", "insecure-by-default mode selection"]
+    },
+    {
+      "path": "wsgi.py",
+      "score": 3,
+      "lines": 9,
+      "last_modified": "2026-08-24",
+      "reason": "Entry point that wires os.environ.get(\"FLASK_SECRET_KEY\", \"dev-only-not-for-prod\") into create_app(). In the actual shipped deployment (build/docker-compose.yml) FLASK_SECRET_KEY is explicitly set to the same static string, so this file's fallback default never fires in practice -- the operative source of the predictable key is docker-compose.yml, not this file. Kept at 3 (not higher) because the file itself is inert; see app/webapp.py for the session-trust implication.",
+      "signals": ["hardcoded fallback secret (dead code in current deployment)", "9-line bootstrap, no independent logic"]
+    },
+    {
+      "path": "app/__init__.py",
+      "score": 1,
+      "lines": 0,
+      "last_modified": "2026-08-24",
+      "reason": "Empty file, no attack surface.",
+      "signals": []
+    }
+  ]
+}
