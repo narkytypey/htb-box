@@ -196,10 +196,10 @@ $jdoe = Get-ADUser -Identity jdoe -Properties info -ErrorAction SilentlyContinue
 if ($null -eq $jdoe) {
     Write-Output "FAIL: jdoe does not exist"
     $failures++
-} elseif ($jdoe.info -eq "CorrectHorseBattery1") {
+} elseif ($jdoe.info -eq "SogukDonerAyran7") {
     Write-Output "PASS: jdoe.info carries the legacy credential"
 } else {
-    Write-Output "FAIL: jdoe.info is '$($jdoe.info)', expected CorrectHorseBattery1"
+    Write-Output "FAIL: jdoe.info is '$($jdoe.info)', expected SogukDonerAyran7"
     $failures++
 }
 
@@ -269,9 +269,9 @@ if (Test-UserExists "jdoe") {
     New-ADUser -Name "jdoe" `
         -SamAccountName "jdoe" `
         -Path "OU=Employees,DC=donerup,DC=htb" `
-        -AccountPassword (ConvertTo-SecureString "CorrectHorseBattery1" -AsPlainText -Force) `
+        -AccountPassword (ConvertTo-SecureString "SogukDonerAyran7" -AsPlainText -Force) `
         -Enabled $true `
-        -OtherAttributes @{ info = "CorrectHorseBattery1" }
+        -OtherAttributes @{ info = "SogukDonerAyran7" }
     Write-Output "created jdoe"
 }
 
@@ -283,7 +283,7 @@ if (Test-UserExists "svc_ldap") {
     New-ADUser -Name "svc_ldap" `
         -SamAccountName "svc_ldap" `
         -Path "OU=Service Accounts,DC=donerup,DC=htb" `
-        -AccountPassword (ConvertTo-SecureString "LdapBind2026!Str0ng" -AsPlainText -Force) `
+        -AccountPassword (ConvertTo-SecureString "KebapciBind2026!Sec" -AsPlainText -Force) `
         -Enabled $true `
         -PasswordNeverExpires $true
     Write-Output "created svc_ldap"
@@ -440,7 +440,7 @@ fi
 
 ```bash
 chmod +x build/dc-provisioning/checks/check-esc9.sh
-./build/dc-provisioning/checks/check-esc9.sh 10.10.20.10 'LdapBind2026!Str0ng'
+./build/dc-provisioning/checks/check-esc9.sh 10.10.20.10 'KebapciBind2026!Sec'
 ```
 
 Expected: `FAIL: certipy did not flag ESC9 - check msPKI-Enrollment-Flag and the Enroll ACL` — no CA exists yet on the DC.
@@ -596,7 +596,7 @@ Write-Output "published $newTemplateName to the CA and restarted CertSvc"
 - [x] **Step 5: Run the check again to confirm the green state**
 
 ```bash
-./build/dc-provisioning/checks/check-esc9.sh 10.10.20.10 'LdapBind2026!Str0ng'
+./build/dc-provisioning/checks/check-esc9.sh 10.10.20.10 'KebapciBind2026!Sec'
 ```
 
 Expected: `certipy find` output includes `ESC9` for `DonerupUserAuth`, followed by `PASS: DonerupUserAuth flagged vulnerable to ESC9`.
@@ -747,7 +747,7 @@ fi
 
 ```bash
 chmod +x build/exploit/run-esc9-chain.sh
-./build/exploit/run-esc9-chain.sh 10.10.20.10 'LdapBind2026!Str0ng'
+./build/exploit/run-esc9-chain.sh 10.10.20.10 'KebapciBind2026!Sec'
 ```
 
 Expected: all six numbered steps print output with no errors, ending in `PASS: DCSync recovered krbtgt - Domain Admin achieved`.
@@ -777,7 +777,21 @@ git commit -m "feat: add end-to-end ESC9 to DCSync exploit chain script"
 
 Per spec §8.3, ESC10 (the Schannel/`CertificateMappingMethods` variant of the same UPN-swap trick) must be verified **separately**, after ESC9 is confirmed and reverted — `StrongCertificateBindingEnforcement` (the Kerberos/PKINIT path Task 5 weakened) and `CertificateMappingMethods` (the Schannel path) can interact, so this plan does not assume both work simultaneously.
 
-- [ ] **Step 1: Write the isolated ESC10 check script**
+- [x] **Step 1: Write the isolated ESC10 check script**
+
+**Correction (implemented 2026-08-28, verified against the live DC):** the
+draft below just printed manual instructions. Writing it that way would have
+left ESC10 permanently "never tried" — nothing forces a human to actually
+follow printed steps. The implemented `run-esc10-check.sh` instead automates
+Task 6's steps 1-4 (shadow cred, UPN swap, enroll, UPN restore) itself, then
+runs `certipy auth -pfx svc_backup.pfx -dc-ip $DC_IP -ldap-shell` and greps
+the real output for `Authenticated to '$DC_IP' as: 'u:DONERUP\Administrator'`
+(note: certipy prints that identity as a Python-escaped string, so the actual
+file has a literal two-backslash sequence — the check uses `grep -qF` with an
+exact fixed-string match rather than fighting BRE escaping). It exits 1 on
+either a failed UPN restore or a non-Administrator/failed auth, so a future
+regression fails loud instead of being silently unnoticed like the print-only
+draft would have been.
 
 `build/exploit/run-esc10-check.sh`:
 
@@ -804,14 +818,23 @@ echo "as a redundant path - if it fails, ESC9 (Task 6) remains the primary,"
 echo "confirmed path and no plan changes are needed."
 ```
 
-- [ ] **Step 2: Run it and record the result**
+- [x] **Step 2: Run it and record the result**
 
 ```bash
 chmod +x build/exploit/run-esc10-check.sh
-./build/exploit/run-esc10-check.sh 10.10.20.10
+./build/exploit/run-esc10-check.sh 10.10.20.10 'KebapciBind2026!Sec'
 ```
 
-Follow the printed instructions on the DC and attacker box. This step's outcome (works / doesn't work / interacts badly with ESC9) is a build-time finding, not a pass/fail gate on this plan — ESC9 (Task 6) is the primary, already-confirmed path.
+**Result (2026-08-28, live DC): PASS.** `Authenticated to '10.10.20.10' as:
+'u:DONERUP\Administrator'` over LDAPS. Checked the registry value the script
+comments point at (`HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\Schannel\CertificateMappingMethods`,
+read via `vmrun runProgramInGuest` from the host, not part of the script since
+the attacker box has no console access to the DC in the real HTB topology) —
+it is **not set at all** (Windows default, `0x0`). So ESC10 works here with
+zero extra Schannel configuration; the design doc's implication that a
+registry change is a precondition was wrong and has been corrected. ESC9
+(Task 6) remains the primary, chain-integrated path — this is now a confirmed
+*redundant* path, not an untested one.
 
 - [ ] **Step 3: Commit**
 
@@ -835,9 +858,9 @@ git commit -m "docs: add isolated ESC10 verification script (secondary path, not
 - §11 open item "LDAP injection needs re-verification against real AD, not mock" → intentionally **not re-tested here**; that belongs to Plan 4, which replays Plan 1's verified payload against this plan's real DC once `LDAP_MODE=real`.
 - §11 open item "ESC9 must be verified on a real DC with `certipy find -vulnerable`" → Task 4, Step 5.
 
-**Placeholder scan:** No TBD/TODO markers. The one open-ended item (Task 7's ESC10 outcome) is explicitly scoped as a build-time finding rather than a pass/fail gate, with a clear fallback (ESC9 remains primary) — not a vague deferral.
+**Placeholder scan:** No TBD/TODO markers. The one open-ended item (Task 7's ESC10 outcome) was scoped as a build-time finding rather than a pass/fail gate, with a clear fallback (ESC9 remains primary) — not a vague deferral. Resolved 2026-08-28: PASS, see Task 7 Step 2.
 
-**Type consistency:** `svc_ldap` password (`LdapBind2026!Str0ng`) is used identically in `check-esc9.sh` and `run-esc9-chain.sh`. `DC_IP` (`10.10.20.10`) matches Plan 2's `config.env`. Template name `DonerupUserAuth` and CA name `Donerup-CA` are consistent across Tasks 4, 6, and 7.
+**Type consistency:** `svc_ldap` password (`KebapciBind2026!Sec`) is used identically in `check-esc9.sh` and `run-esc9-chain.sh`. `DC_IP` (`10.10.20.10`) matches Plan 2's `config.env`. Template name `DonerupUserAuth` and CA name `Donerup-CA` are consistent across Tasks 4, 6, and 7.
 
 **Correction (pre-implementation, verified against installed certipy v5.0.4 / impacket v0.13.1):** Task 6's original draft had three latent bugs, fixed in the script body above before any subagent implemented it — (1) the shadow-credential NT-hash grep pattern didn't match this certipy version's actual output string, (2) the enrolled `.pfx` would have saved under the wrong filename because certipy names it from the certificate's embedded UPN (which is `administrator` at request time) rather than from `-u`, and (3) `DC_HOST` referenced a DC hostname no earlier task ever establishes. See the inline comment in Task 6's script for details.
 

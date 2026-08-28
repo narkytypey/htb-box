@@ -9,6 +9,6 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 INSERT INTO users (username, password_md5) VALUES
-    ('test_user1', MD5('summer2018')),
-    ('test_user2', MD5('qwerty123')),
-    ('demo', MD5('demo1234'));
+    ('test_user1', MD5('pideci06')),
+    ('test_user2', MD5('kokorec99')),
+    ('demo', MD5('misir2020'));

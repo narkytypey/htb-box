@@ -1,10 +1,29 @@
 services:
+  # Spec S3 entry surface. The web container is deliberately NOT published to
+  # the host: 80/443 here are the only way in, so a player's first nmap sees
+  # the corporate portal the story rests on rather than a bare dev port.
+  # Local testing goes through this too -- override BASE_URL if you need to
+  # hit Flask directly (see web/tests/integration_smoke.py).
+  proxy:
+    build: ./proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+    networks:
+      - dmz
+
   web:
     build: ./web
-    ports:
-      - "8080:5000"
+    restart: unless-stopped
+    # No FLASK_SECRET_KEY here on purpose: a value pinned in this file is a
+    # published secret, and the SSTI RCE (spec S5) hands a player the process
+    # environment, so a constant key would let them forge an is_privileged
+    # session instead of finding the LDAP injection. docker-entrypoint.sh
+    # mints a random one per container start.
     environment:
-      FLASK_SECRET_KEY: dev-only-not-for-prod
       AD_VLAN_SUBNET: ${AD_VLAN_SUBNET:?set in network/config.env}
       INTERNAL_AD_SUBNET: ${INTERNAL_AD_SUBNET:?set in network/config.env}
       INTERNAL_AD_GATEWAY_IP: ${INTERNAL_AD_GATEWAY_IP:?set in network/config.env}
@@ -22,8 +41,9 @@ services:
 
   legacy-auth-db:
     build: ./legacy-auth-db
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: "Summer2019!"
+      MYSQL_ROOT_PASSWORD: "DonerciKral99!"
       MYSQL_DATABASE: legacy_auth
     networks:
       - dmz

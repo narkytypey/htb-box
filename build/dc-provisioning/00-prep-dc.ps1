@@ -139,7 +139,32 @@ if ($domain -and $domain.DNSRoot -eq 'donerup.htb') {
     Say "FAIL: donerup.htb domain not found  <-- expected red state, good"
 }
 
-# --- 6. Rename and reboot ----------------------------------------------
+# --- 6. History hygiene (HTB submission requirement) --------------------
+# PowerShell command history must be disabled unless the exploitation vector
+# needs it (it doesn't on this box) -- both for the delivered machine's own
+# interactive sessions (the AllUsersAllHosts profile below) and for any
+# session -NoProfile invocations skip (each provisioning script that types a
+# plaintext secret sets this itself; see 02-create-users.ps1).
+Say "Disabling PSReadLine history persistence (AllUsersAllHosts profile)"
+$allUsersProfile = "$PsHome\Profile.ps1"
+$historyLine = "Set-PSReadLineOption -HistorySaveStyle SaveNothing -ErrorAction SilentlyContinue"
+if (-not (Test-Path $allUsersProfile) -or -not (Select-String -Path $allUsersProfile -Pattern "HistorySaveStyle" -Quiet -ErrorAction SilentlyContinue)) {
+    Add-Content -Path $allUsersProfile -Value $historyLine
+    Say "Added history-disable line to $allUsersProfile"
+} else {
+    Say "History-disable line already present in $allUsersProfile"
+}
+
+# Purge any history already written by earlier interactive sessions on this
+# VM (e.g. troubleshooting before this script existed) so nothing from a
+# prior run lingers on the machine we ship.
+$existingHistory = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
+if (Test-Path $existingHistory) {
+    Remove-Item $existingHistory -Force
+    Say "Removed pre-existing PSReadLine history at $existingHistory"
+}
+
+# --- 7. Rename and reboot ----------------------------------------------
 if ($env:COMPUTERNAME -eq $NewName) {
     Say "Already named $NewName - no reboot needed. Run 01-promote-dc.ps1 next."
 } else {

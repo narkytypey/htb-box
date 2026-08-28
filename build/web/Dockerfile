@@ -5,6 +5,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --shell /usr/sbin/nologin appuser
 
+# HTB machine submission requirement: shell history must be redirected to
+# /dev/null. A shell reached via the RCE foothold has no login profile to
+# source HISTFILE from, so the env var alone would not cover it -- the
+# symlink is what actually stops history writes regardless of how the shell
+# got started.
+ENV HISTFILE=/dev/null
+RUN ln -sf /dev/null /root/.bash_history \
+    && ln -sf /dev/null /home/appuser/.bash_history
+
 WORKDIR /app
 
 COPY requirements.txt .

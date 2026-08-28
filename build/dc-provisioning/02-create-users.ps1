@@ -3,6 +3,14 @@
 # which is exactly how the "Users" OU collision below went unnoticed.
 $ErrorActionPreference = "Stop"
 
+# HTB submission requirement: PowerShell command history must be disabled
+# unless the exploitation vector needs it (it doesn't here). This script
+# types every plaintext credential as a literal argument, so it must not
+# rely solely on the AllUsersAllHosts profile set in 00-prep-dc.ps1 -- a
+# -NoProfile invocation (e.g. via vmrun) would skip that profile and still
+# write this session's passwords to ConsoleHost_history.txt.
+Set-PSReadLineOption -HistorySaveStyle SaveNothing -ErrorAction SilentlyContinue
+
 Import-Module ActiveDirectory
 
 function New-OuIfMissing {
@@ -39,9 +47,9 @@ if (Test-UserExists "jdoe") {
     New-ADUser -Name "jdoe" `
         -SamAccountName "jdoe" `
         -Path "OU=Employees,DC=donerup,DC=htb" `
-        -AccountPassword (ConvertTo-SecureString "CorrectHorseBattery1" -AsPlainText -Force) `
+        -AccountPassword (ConvertTo-SecureString "SogukDonerAyran7" -AsPlainText -Force) `
         -Enabled $true `
-        -OtherAttributes @{ info = "CorrectHorseBattery1" }
+        -OtherAttributes @{ info = "SogukDonerAyran7" }
     Write-Output "created jdoe"
 }
 
@@ -53,7 +61,7 @@ if (Test-UserExists "svc_ldap") {
     New-ADUser -Name "svc_ldap" `
         -SamAccountName "svc_ldap" `
         -Path "OU=Service Accounts,DC=donerup,DC=htb" `
-        -AccountPassword (ConvertTo-SecureString "LdapBind2026!Str0ng" -AsPlainText -Force) `
+        -AccountPassword (ConvertTo-SecureString "KebapciBind2026!Sec" -AsPlainText -Force) `
         -Enabled $true `
         -PasswordNeverExpires $true
     Write-Output "created svc_ldap"

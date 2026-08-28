@@ -17,10 +17,10 @@ $jdoe = Get-ADUser -Identity jdoe -Properties info -ErrorAction SilentlyContinue
 if ($null -eq $jdoe) {
     Write-Output "FAIL: jdoe does not exist"
     $failures++
-} elseif ($jdoe.info -eq "CorrectHorseBattery1") {
+} elseif ($jdoe.info -eq "SogukDonerAyran7") {
     Write-Output "PASS: jdoe.info carries the legacy credential"
 } else {
-    Write-Output "FAIL: jdoe.info is '$($jdoe.info)', expected CorrectHorseBattery1"
+    Write-Output "FAIL: jdoe.info is '$($jdoe.info)', expected SogukDonerAyran7"
     $failures++
 }
 

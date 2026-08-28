@@ -7,6 +7,17 @@ if [ ! -f /home/appuser/user.txt ]; then
     chown appuser:appuser /home/appuser/user.txt
 fi
 
+# Session signing key. Compose deliberately pins none (see the comment
+# there): the RCE foothold exposes this process's environment, so any
+# constant key would be one `env` away from a forged is_privileged
+# session -- a shortcut straight past the LDAP injection the box is built
+# around. A fresh key per container start costs only that logged-in
+# sessions do not survive a restart, which for a box is the right trade.
+if [ -z "${FLASK_SECRET_KEY:-}" ] || [ "$FLASK_SECRET_KEY" = "dev-only-not-for-prod" ]; then
+    FLASK_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+    export FLASK_SECRET_KEY
+fi
+
 # The app needs this route for its own LDAP bind once real-LDAP mode is
 # active (Plan 3) -- it is not added specifically to enable a pivot tool, though
 # a pivot tool riding inside the container uses the same kernel route.

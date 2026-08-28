@@ -29,7 +29,7 @@ def ldap_conn():
         {
             "sAMAccountName": "jdoe",
             "objectClass": "user",
-            "info": "CorrectHorseBattery1",
+            "info": "SogukDonerAyran7",
         },
     )
     conn.bind()
@@ -37,24 +37,24 @@ def ldap_conn():
 
 
 def test_wrong_username_is_rejected(ldap_conn):
-    ok, _ = authenticate(ldap_conn, "nosuchuser", "whatever")
+    ok, _, _ = authenticate(ldap_conn, "nosuchuser", "whatever")
     assert ok is False
 
 
 def test_correct_password_for_regular_user_succeeds(ldap_conn):
-    ok, _ = authenticate(ldap_conn, "jdoe", "CorrectHorseBattery1")
+    ok, _, _ = authenticate(ldap_conn, "jdoe", "SogukDonerAyran7")
     assert ok is True
 
 
 def test_wrong_password_for_regular_user_fails(ldap_conn):
-    ok, _ = authenticate(ldap_conn, "jdoe", "wrongpass")
+    ok, _, _ = authenticate(ldap_conn, "jdoe", "wrongpass")
     assert ok is False
 
 
 def test_username_field_or_breakout_bypasses_admin_without_info(ldap_conn):
     username = sanitize("administrator）（|（sAMAccountName=administrator")
     password = sanitize("）")
-    ok, member_of = authenticate(ldap_conn, username, password)
+    ok, member_of, _ = authenticate(ldap_conn, username, password)
     assert ok is True
     assert is_privileged(member_of) is True
 
@@ -62,7 +62,7 @@ def test_username_field_or_breakout_bypasses_admin_without_info(ldap_conn):
 def test_or_breakout_generalizes_to_other_users_without_real_password(ldap_conn):
     username = sanitize("jdoe）（|（sAMAccountName=jdoe")
     password = sanitize("）")
-    ok, _ = authenticate(ldap_conn, username, password)
+    ok, _, _ = authenticate(ldap_conn, username, password)
     assert ok is True
 
 
@@ -72,8 +72,19 @@ def test_or_breakout_fails_if_inner_branch_is_false(ldap_conn):
     proving the OR is load-bearing, not decorative."""
     username = sanitize("administrator）（|（sAMAccountName=nosuchuser")
     password = sanitize("）")
-    ok, _ = authenticate(ldap_conn, username, password)
+    ok, _, _ = authenticate(ldap_conn, username, password)
     assert ok is False
+
+
+def test_authenticate_returns_the_directory_resolved_account_name(ldap_conn):
+    """The third return value is the sAMAccountName as the directory reports
+    it, never the submitted string. With an injection payload as input, the
+    two differ — that gap is what keeps the payload out of the session."""
+    submitted = sanitize("administrator）（|（sAMAccountName=administrator")
+    ok, _, resolved = authenticate(ldap_conn, submitted, sanitize("）"))
+    assert ok is True
+    assert resolved == "administrator"
+    assert resolved != submitted
 
 
 def test_password_only_wildcard_works_for_regular_user_but_not_admin(ldap_conn):
@@ -82,8 +93,8 @@ def test_password_only_wildcard_works_for_regular_user_but_not_admin(ldap_conn):
     never admin, since admin has no `info` attribute to match."""
     password = sanitize("＊")
 
-    ok_jdoe, _ = authenticate(ldap_conn, "jdoe", password)
+    ok_jdoe, _, _ = authenticate(ldap_conn, "jdoe", password)
     assert ok_jdoe is True
 
-    ok_admin, _ = authenticate(ldap_conn, "administrator", password)
+    ok_admin, _, _ = authenticate(ldap_conn, "administrator", password)
     assert ok_admin is False

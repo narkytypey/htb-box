@@ -45,7 +45,7 @@ def mock_ldap_connection():
         {
             "sAMAccountName": "jdoe",
             "objectClass": "user",
-            "info": "CorrectHorseBattery1",
+            "info": "SogukDonerAyran7",
         },
     )
     conn.bind()
