@@ -61,6 +61,7 @@ def create_app(ldap_connection_factory, secret_key="dev-only-not-for-prod", http
         # request.remote_addr is Werkzeug's actual TCP peer address; it
         # deliberately never trusts X-Forwarded-For, or a header would
         # forge this check trivially instead of requiring real SSRF.
+        # (Proven by test_report_template_ignores_a_forged_x_forwarded_for_header.)
         if request.remote_addr not in ("127.0.0.1", "::1"):
             return "Forbidden: internal use only", 403
         raw_template = request.values.get("template")

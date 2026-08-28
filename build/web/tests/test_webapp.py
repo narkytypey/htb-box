@@ -170,6 +170,21 @@ def test_report_template_accepts_loopback_requests_with_no_session_at_all():
     assert resp.status_code == 200
 
 
+def test_report_template_ignores_a_forged_x_forwarded_for_header():
+    """The loopback gate is the single load-bearing security property of
+    this whole plan (spec Approach A) -- it must key off the real TCP peer
+    address only. A forged X-Forwarded-For/X-Real-IP claiming 127.0.0.1
+    must not grant access to a request that actually arrived from
+    elsewhere."""
+    client = make_app().test_client()
+    resp = client.get(
+        "/admin/report-template",
+        headers={"X-Forwarded-For": "127.0.0.1", "X-Real-IP": "127.0.0.1"},
+        environ_overrides={"REMOTE_ADDR": "203.0.113.5"},
+    )
+    assert resp.status_code == 403
+
+
 def test_report_template_renders_a_query_string_payload_from_loopback():
     """This is the actual SSRF exploitation primitive: a GET with the
     payload in the query string, which is what a server-side
@@ -223,6 +238,16 @@ def _make_app_with_http_get(http_get):
 
 def test_branding_requires_an_admin_session():
     client = _make_app_with_http_get(lambda *a, **kw: _FakeImageResponse()).test_client()
+    resp = client.post("/admin/branding", data={"logo_url": "http://cdn.example.com/logo.png"})
+    assert resp.status_code == 403
+
+
+def test_branding_rejects_an_authenticated_non_admin_user():
+    """/admin/branding is still session-gated (unlike /admin/report-template,
+    which moved to a loopback-only gate). An authenticated but
+    non-privileged session must be rejected, not just an anonymous one."""
+    client = _make_app_with_http_get(lambda *a, **kw: _FakeImageResponse()).test_client()
+    client.post("/login", data={"username": "jdoe", "password": "SogukDonerAyran7"})
     resp = client.post("/admin/branding", data={"logo_url": "http://cdn.example.com/logo.png"})
     assert resp.status_code == 403
 

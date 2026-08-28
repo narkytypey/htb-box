@@ -61,7 +61,10 @@ def main():
         ")(|(" not in resp.text and "sAMAccountName" not in resp.text,
     )
 
-    resp = session.get(f"{BASE_URL}/admin/report-template")
+    resp = session.get(
+        f"{BASE_URL}/admin/report-template",
+        headers={"X-Forwarded-For": "127.0.0.1", "X-Real-IP": "127.0.0.1"},
+    )
     check(
         "report-template rejects a direct external request, even as administrator",
         resp.status_code == 403,

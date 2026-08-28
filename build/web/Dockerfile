@@ -31,11 +31,23 @@ EXPOSE 5000
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 # --workers 2 (not gunicorn's default of 1): the /admin/branding SSRF
-# fetches back into this same container on 127.0.0.1:5000 (spec S5/S6). With
-# a single sync worker, the outer /admin/branding request occupies the only
-# worker and the inner loopback request can never be accepted -- a
-# self-deadlock that resolves only via the fetch's own timeout, discovered
-# by the live integration smoke test (build/web/tests/integration_smoke.py)
-# timing out instead of getting a real response. Two workers let the outer
-# request hold one while the inner loopback request is served by the other.
-CMD ["gunicorn", "--workers", "2", "--bind", "0.0.0.0:5000", "wsgi:app"]
+# fetches back into this same container on 127.0.0.1:5000 (spec
+# docs/superpowers/specs/2026-08-28-donerup-insane-depth-design.md,
+# Approach A). With a single sync worker, the outer /admin/branding request
+# occupies the only worker and the inner loopback request can never be
+# accepted -- a self-deadlock that resolves only via the fetch's own
+# timeout, discovered by the live integration smoke test
+# (build/web/tests/integration_smoke.py) timing out instead of getting a
+# real response. Two workers let the outer request hold one while the inner
+# loopback request is served by the other.
+# --threads 4 (gunicorn auto-promotes the sync worker class to gthread once
+# threads > 1): 2 workers alone is still only 2 concurrent request slots
+# total, and the SSRF chain consumes both simultaneously by construction
+# (the outer /admin/branding request + the inner loopback request it
+# triggers) -- so two overlapping branding requests, or one slow
+# logo_url, would degrade or hang the exploit for players. 2 workers x 4
+# threads gives 8 concurrent slots. Safe because render_report_template
+# builds a fresh Environment() per call and the LDAP connection factory
+# builds a new Connection per request -- no shared mutable state in the
+# request path.
+CMD ["gunicorn", "--workers", "2", "--threads", "4", "--bind", "0.0.0.0:5000", "wsgi:app"]

@@ -34,11 +34,19 @@ def fetch_logo_preview(logo_url: str, http_get) -> bytes:
     """
     resp = http_get(logo_url, timeout=FETCH_TIMEOUT_SECONDS, stream=True)
     content_type = resp.headers.get("Content-Type", "")
-    chunk = b""
-    for piece in resp.iter_content(chunk_size=MAX_PREVIEW_BYTES):
-        chunk = piece
-        break
-    resp.close()
+    buf = b""
+    try:
+        for piece in resp.iter_content(chunk_size=MAX_PREVIEW_BYTES):
+            buf += piece
+            if len(buf) >= MAX_PREVIEW_BYTES:
+                break
+    finally:
+        # Must run even if iter_content raises mid-stream (a real
+        # possibility when logo_url points at a non-HTTP service) -- a
+        # bare post-loop close() would be skipped on that path and leak
+        # the underlying socket.
+        resp.close()
+    buf = buf[:MAX_PREVIEW_BYTES]
     if not content_type.startswith("image/"):
-        raise LogoFetchError(resp.status_code, chunk.decode("utf-8", errors="replace"))
-    return chunk
+        raise LogoFetchError(resp.status_code, buf.decode("utf-8", errors="replace"))
+    return buf

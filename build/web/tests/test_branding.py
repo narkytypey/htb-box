@@ -62,6 +62,39 @@ def test_fetch_logo_preview_caps_the_read_at_max_preview_bytes():
     assert len(exc_info.value.snippet) <= 1000
 
 
+class _MultiChunkResponse:
+    def __init__(self, status_code, content_type, chunks):
+        self.status_code = status_code
+        self.headers = {"Content-Type": content_type}
+        self._chunks = chunks
+        self.closed = False
+
+    def iter_content(self, chunk_size):
+        for chunk in self._chunks:
+            yield chunk
+
+    def close(self):
+        self.closed = True
+
+
+def test_fetch_logo_preview_accumulates_multiple_chunks_up_to_the_cap():
+    """A chunked/compressed response can yield many small pieces well under
+    MAX_PREVIEW_BYTES each. Taking only the first piece would silently
+    truncate the leaked content far short of the documented ~1000-byte
+    window -- the fetch must accumulate across pieces, capped at
+    MAX_PREVIEW_BYTES total, not unbounded."""
+    chunks = [b"a" * 400, b"b" * 400, b"c" * 400]  # 1200 bytes across 3 pieces
+    http_get = lambda url, timeout=None, stream=None: _MultiChunkResponse(
+        200, "text/html", chunks
+    )
+    with pytest.raises(LogoFetchError) as exc_info:
+        fetch_logo_preview("http://internal/multi", http_get)
+    snippet = exc_info.value.snippet
+    assert len(snippet) == 1000
+    assert snippet.startswith("a" * 400 + "b" * 400)
+    assert snippet.endswith("c" * 200)
+
+
 def test_fetch_logo_preview_propagates_real_connection_errors():
     # No fake here on purpose: a malformed URL makes the real `requests`
     # library raise synchronously before any network I/O happens, so this
