@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Store Report Builder &mdash; Donerup{% endblock %}
+{% block content %}
+<div class="portal-bar">
+  <div class="mark-row">
+    {% include "_mark.html" %}
+    <span class="wordmark on-dark">Donerup</span>
+  </div>
+  <nav class="portal-nav"><span class="current">Store Report Builder</span></nav>
+</div>
+<div class="content-pad">
+  <form method="post">
+    <div class="panel-title">Report template</div>
+    <textarea class="report" name="template"></textarea>
+    <div class="report-actions">
+      <button class="btn secondary" type="submit">Render report</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

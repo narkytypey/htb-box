@@ -1,4 +1,4 @@
-from flask import Flask, request, session, redirect, url_for
+from flask import Flask, render_template, request, session, redirect, url_for
 
 from .sanitize import sanitize
 from .ldap_auth import authenticate, is_privileged
@@ -12,12 +12,12 @@ def create_app(ldap_connection_factory, secret_key="dev-only-not-for-prod"):
 
     @app.route("/login", methods=["GET"])
     def login_form():
-        return (
-            '<form method="post" action="/login">'
-            '<input name="username">'
-            '<input name="password" type="password">'
-            '<button type="submit">Sign in</button></form>'
-        )
+        # Spec S3: seed the LDAP theme here so the first step is derivable by
+        # enumeration rather than guessed (S1, "Guessing yok"). Deliberately
+        # a *theme* hint only -- it names the directory backend, never the
+        # vulnerable field or the sanitiser weakness, which is what keeps
+        # S4.1's Insane rating intact. See templates/login.html.
+        return render_template("login.html")
 
     @app.route("/login", methods=["POST"])
     def login():
@@ -27,11 +27,15 @@ def create_app(ldap_connection_factory, secret_key="dev-only-not-for-prod"):
         password = sanitize(raw_password)
 
         conn = app.config["LDAP_CONNECTION_FACTORY"]()
-        ok, member_of = authenticate(conn, username, password)
+        ok, member_of, account_name = authenticate(conn, username, password)
         if not ok:
             return "Invalid credentials", 401
 
-        session["username"] = username
+        # Store what the directory resolved to, not what was submitted -- on
+        # the intended injection path the submitted value IS the payload, and
+        # echoing it back would both break the portal illusion and reflect
+        # attacker input into the response (spec S4.1).
+        session["username"] = account_name or "unknown"
         session["is_privileged"] = is_privileged(member_of)
         return redirect(url_for("dashboard"))
 
@@ -39,17 +43,17 @@ def create_app(ldap_connection_factory, secret_key="dev-only-not-for-prod"):
     def dashboard():
         if "username" not in session:
             return redirect(url_for("login_form"))
-        return f"Welcome, {session['username']}"
+        # dashboard.html renders standalone (no base.html) and deliberately
+        # ends the response body right after the account name -- see the
+        # comment in that template for why nothing may follow it.
+        return render_template("dashboard.html", account_name=session["username"])
 
     @app.route("/admin/report-template", methods=["GET", "POST"])
     def report_template():
         if not session.get("is_privileged"):
             return "Forbidden", 403
         if request.method == "GET":
-            return (
-                '<form method="post"><textarea name="template"></textarea>'
-                '<button type="submit">Render</button></form>'
-            )
+            return render_template("report_template.html")
         raw_template = request.form.get("template", "")
         try:
             rendered = render_report_template(raw_template, {})

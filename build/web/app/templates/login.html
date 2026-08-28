@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Sign in — Donerup{% endblock %}
+{% block content %}
+<!-- migration note: local auth tables retired; credentials now resolve
+     against the corporate LDAP directory -->
+<div class="login-hero">
+  <div class="mark-row">
+    {% include "_mark.html" %}
+    <span class="wordmark on-dark">Donerup</span>
+  </div>
+  <div class="diagonal"></div>
+</div>
+<div class="login-stage">
+  <div>
+    <div class="card">
+      <h2>Sign in</h2>
+      <p class="sub">Donerup Restaurant Group &mdash; Employee Directory</p>
+      <form method="post" action="/login">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password">
+        </div>
+        <button class="btn" type="submit">Sign in</button>
+      </form>
+    </div>
+    <footer class="fineprint">
+      Authenticating against the corporate LDAP directory.<br>
+      Contact IT Service Desk for access requests.
+    </footer>
+  </div>
+</div>
+{% endblock %}

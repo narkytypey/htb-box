@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Donerup &mdash; Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/donerup.css') }}">
+</head>
+<body>
+<div class="portal-bar">
+  <div class="mark-row">
+    {% include "_mark.html" %}
+    <span class="wordmark on-dark">Donerup</span>
+  </div>
+  <nav class="portal-nav">
+    <span>Store Ops</span><span>Reports</span><span class="current">Directory</span>
+  </nav>
+</div>
+{#
+  Nothing may follow the line below but the account name itself: the
+  anti-reflection test asserts the response literally ends with
+  "Welcome, {account_name}" (see test_webapp.py::
+  test_dashboard_never_echoes_the_injection_payload). Do not add a
+  closing tag, footer, or trailing markup after it.
+#}
+<div class="welcome-block">
+  <span class="welcome-tag">Signed in</span>
+  <p class="welcome">Welcome, {{ account_name }}
