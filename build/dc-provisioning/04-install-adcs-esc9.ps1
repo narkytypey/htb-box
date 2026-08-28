@@ -1,4 +1,4 @@
-# Stop on the first failure. The previous version ran straight through a failed
+﻿# Stop on the first failure. The previous version ran straight through a failed
 # New-ADObject and then emitted five cascading errors against an object that had
 # never been created, ending with a misleading "certutil FAILED".
 $ErrorActionPreference = "Stop"
@@ -14,6 +14,11 @@ Install-WindowsFeature Adcs-Cert-Authority -IncludeManagementTools | Out-Null
 
 # Install-AdcsCertificationAuthority throws if a CA is already configured, so
 # make re-runs safe: the ADCSAdministration provider reports the configured CA.
+# Uninstalling the CA role leaves its private key container behind, so a
+# re-install after a teardown otherwise dies with "The private key
+# 'Donerup-CA' already exists" -- hence -OverwriteExistingKey below. Minting
+# a fresh key is the intent on a re-run anyway: the only reason to tear the CA
+# down is that the material it holds is wrong.
 $caConfigured = $null -ne (Get-ItemProperty `
     -Path "HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration" `
     -Name Active -ErrorAction SilentlyContinue)
@@ -25,6 +30,7 @@ if ($caConfigured) {
         -CACommonName "Donerup-CA" `
         -KeyLength 2048 `
         -HashAlgorithmName SHA256 `
+        -OverwriteExistingKey `
         -Force
     Write-Output "installed Enterprise Root CA 'Donerup-CA'"
 }
