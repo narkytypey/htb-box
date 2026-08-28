@@ -27,9 +27,9 @@ ip_to_int() {
   echo $(( (a << 24) + (b << 16) + (c << 8) + d ))
 }
 
-# config.env's own top-of-file comment instructs replacing VPN_CLIENT_SUBNET
-# with the real HTB player range before deployment. If that (or either other
-# subnet) is ever resized/moved without updating the FAKE_* constants below
+# config.env pins VPN_CLIENT_SUBNET to the HTB player range, and says to keep
+# FAKE_VPN_IP inside it if that ever changes. If that (or either other
+# subnet) is resized/moved without updating the FAKE_* constants below
 # to match, the test would silently exercise the wrong address space instead
 # of failing loudly -- so assert containment up front and name config.env as
 # the thing to reconcile.
