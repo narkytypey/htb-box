@@ -88,3 +88,95 @@ if ($null -ne $adminInfo) {
     throw "administrator has an 'info' value set - this breaks the LDAP injection path (spec S4.1)"
 }
 Write-Output "administrator.info confirmed absent"
+
+# --- Content layer roster (spec 2026-08-29-donerup-content-layer-design.md) ---
+# Inert texture only: every account below gets a GUID password (nobody can
+# authenticate as it), no `info` attribute (the migration completed only for
+# the pilot store, so jdoe stays the sole info holder), and no ACL edge.
+# Two passes are required: an account cannot reference a manager that does
+# not exist yet.
+
+foreach ($ou in @("Store Operations", "Regional Management", "IT", "Finance")) {
+    New-OuIfMissing -Name $ou -Path "OU=Employees,DC=donerup,DC=htb"
+}
+New-OuIfMissing -Name "Leavers" -Path "DC=donerup,DC=htb"
+
+# No name here may contain the substring "Domain Admins" -- ldap_auth's
+# is_privileged does a substring match, so such a group would bypass the
+# LDAP injection entirely.
+$contentGroups = @(
+    "Store Managers",
+    "Regional Managers",
+    "IT Operations",
+    "Finance Reporting",
+    "Portal Report Authors",
+    "Till Support (legacy)"
+)
+foreach ($g in $contentGroups) {
+    # RFC 4515: parentheses in an assertion value must be escaped or the
+    # filter is malformed. "Till Support (legacy)" would otherwise make this
+    # guard fail silently under -ErrorAction SilentlyContinue, so every run
+    # would try to create the group again and the second run would throw.
+    $gFilterValue = $g -replace '\(', '\28' -replace '\)', '\29'
+    if (Get-ADGroup -LDAPFilter "(cn=$gFilterValue)" -ErrorAction SilentlyContinue) {
+        Write-Output "group already present: $g"
+    } else {
+        New-ADGroup -Name $g -GroupScope Global -GroupCategory Security -Path "OU=Employees,DC=donerup,DC=htb"
+        Write-Output "created group: $g"
+    }
+}
+
+$rosterPath = Join-Path $PSScriptRoot "data\employees.csv"
+$roster = Import-Csv $rosterPath
+
+# Pass 1: accounts.
+foreach ($row in $roster) {
+    if (Test-UserExists $row.sam) {
+        Write-Output "$($row.sam) already present"
+        continue
+    }
+    $path = if ($row.ou -eq "Leavers") {
+        "OU=Leavers,DC=donerup,DC=htb"
+    } else {
+        "OU=$($row.ou),OU=Employees,DC=donerup,DC=htb"
+    }
+    $attrs = @{
+        title       = $row.title
+        department  = $row.ou
+        company     = "Donerup Restaurant Group"
+        physicalDeliveryOfficeName = $row.office
+        employeeID  = $row.employee_id
+        description = $row.description
+    }
+    if ($row.mail) { $attrs["mail"] = $row.mail }
+
+    New-ADUser -Name $row.display_name `
+        -SamAccountName $row.sam `
+        -DisplayName $row.display_name `
+        -Path $path `
+        -AccountPassword (ConvertTo-SecureString ([guid]::NewGuid().Guid) -AsPlainText -Force) `
+        -Enabled ([bool]::Parse($row.enabled)) `
+        -OtherAttributes $attrs
+    Write-Output "created $($row.sam)"
+}
+
+# Pass 2: manager links and group membership, now that every referenced
+# object exists.
+foreach ($row in $roster) {
+    if ($row.manager_sam) {
+        $mgr = Get-ADUser -LDAPFilter "(sAMAccountName=$($row.manager_sam))"
+        Set-ADUser -Identity $row.sam -Manager $mgr
+    }
+    foreach ($g in ($row.groups -split '\|' | Where-Object { $_ })) {
+        $members = (Get-ADGroupMember -Identity $g -ErrorAction SilentlyContinue).SamAccountName
+        if ($members -notcontains $row.sam) {
+            Add-ADGroupMember -Identity $g -Members $row.sam
+        }
+    }
+}
+Write-Output "roster pass 2 complete: manager links and group membership"
+
+# jdoe's canonical role, recorded on the account itself. Its info,
+# password, OU and DN are deliberately untouched.
+Set-ADUser -Identity jdoe -Description "Migration pilot test account, DNR-001. Retain until the password-reset rollout completes."
+Write-Output "jdoe description set"
