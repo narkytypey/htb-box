@@ -5,6 +5,7 @@
   --orange: #f36f21;
   --orange-dim: #d2540e;
   --grey: #6b6b6b;
+  --rule: #e4e0db;
 
   --display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --body: "Barlow", "Segoe UI", Arial, sans-serif;
@@ -348,7 +349,7 @@ textarea.report:focus-visible {
 
 .data-table td {
   padding: 9px 12px;
-  border-bottom: 1px solid #e4e0db;
+  border-bottom: 1px solid var(--rule);
   color: var(--black);
 }
 
