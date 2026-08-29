@@ -35,9 +35,9 @@ Passwords:
 | User | Password | Notes |
 | --- | --- | --- |
 | `jdoe` | `SogukDonerAyran7` | Regular migrated employee; carries the legacy plaintext-equivalent credential in `info` (see the LDAP-injection section) but has no admin-panel access — a red herring, not a shortcut. |
-| `svc_ldap` | `KebapciBind2026!Sec` | The LDAP bind service account; also the "real path" credential the CHANGELOG.md hint leads a player to. Set in `build/dc-provisioning/02-create-users.ps1`. |
+| `svc_ldap` | `KebapciBind2026!Sec` | The LDAP bind service account; also the "real path" credential the CHANGELOG.md hint leads a player to. Set in `build/dc-provisioning/02-create-users.ps1`. **The live lab DC still has the older `LdapBind2026!Str0ng` value** (provisioned 2026-08-27, before this password was re-themed 2026-08-28) — the script is idempotent and won't reset an existing account's password, so the two are currently out of sync. A fresh provisioning run gets this value; the live lab needs a manual `Set-ADAccountPassword` (or account delete + re-run) to converge. |
 | `svc_backup` | Random GUID, re-rolled on every provisioning run | Never meant to be known in plaintext — it's the GenericWrite victim, compromised via Shadow Credentials (`certipy shadow auto`), not by password. |
-| `Administrator` (domain) | *(fill in from the DC's Windows install — not stored in any script)* | Not needed to solve the box (compromised via the ESC9 → PKINIT → DCSync chain); provided here only so HTB staff can log in directly to verify. |
+| `Administrator` (domain) | `R00tP@ssw0rd2026!` | Not needed to solve the box (compromised via the ESC9 → PKINIT → DCSync chain); provided here only so HTB staff can log in directly to verify. **Same value as the DSRM password below** — worth confirming that's intentional reuse rather than a copy-paste, since DSRM and the domain Administrator are meant to be independent credentials. |
 | DSRM / local recovery | `R00tP@ssw0rd2026!` | Set during `dcpromo` in `build/dc-provisioning/01-promote-dc.ps1`. |
 
 ### Key Processes

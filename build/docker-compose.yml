@@ -7,6 +7,12 @@ services:
   proxy:
     build: ./proxy
     restart: unless-stopped
+    # Modest per-container caps in the spirit of HTB's 2GB/2CPU Linux
+    # best-practice guidance -- that rule is written for a single-VM box,
+    # not this hybrid (3 containers + a separate DC VM), so it's split
+    # across the tier rather than applied per-container literally.
+    mem_limit: 512m
+    cpus: 0.5
     ports:
       - "80:80"
       - "443:443"
@@ -18,6 +24,8 @@ services:
   web:
     build: ./web
     restart: unless-stopped
+    mem_limit: 1g
+    cpus: 1.0
     # No FLASK_SECRET_KEY here on purpose: a value pinned in this file is a
     # published secret, and the SSTI RCE (spec S5) hands a player the process
     # environment, so a constant key would let them forge an is_privileged
@@ -42,6 +50,8 @@ services:
   legacy-auth-db:
     build: ./legacy-auth-db
     restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
     environment:
       MYSQL_ROOT_PASSWORD: "DonerciKral99!"
       MYSQL_DATABASE: legacy_auth
