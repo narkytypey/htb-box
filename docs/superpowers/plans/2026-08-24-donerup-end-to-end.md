@@ -387,6 +387,12 @@ Expected: `PASS: direct-IP LDAP bind + full certipy enumeration against the DC s
 
 **Result (2026-08-28):** `PASS: direct-IP LDAP bind + full certipy enumeration against the DC succeeded`. Per this step's own caveat, that closes nothing about DNS: `-ns` was inert because `-dc-ip` was an IP literal, so spec S11's "Tunnel DNS via `-ns <DC_IP>`" item remains **open** and still needs a check where `-ns` is load-bearing (a hostname target with no `-dc-ip`).
 
+- [ ] **Step 2b: The actual `-ns`-load-bearing check this step deferred**
+
+`build/exploit/run-dns-tunnel-check.sh <dc-ip> <svc_ldap-password>` (written 2026-08-29, not yet run). Drops `-dc-ip` entirely and uses a hostname-form principal (`svc_ldap@donerup.htb`) with `-ns <DC_IP>`, so certipy's resolver is genuinely exercised — the exact gap Step 2 itself calls out. Same `"Enumeration output:"` marker gate as Step 2, plus a documented precondition to check first: confirm `donerup.htb`/`dc01.donerup.htb` has no static `/etc/hosts` or non-DC resolver entry on the attacker box, or a PASS here wouldn't prove `-ns` did anything.
+
+**Not run yet as of 2026-08-29** — DC01 was mid-rebuild onto Windows Server 2025 (separate VM, old 2022 one untouched) under a parallel session's provisioning pass when this script was written; run it once that DC is confirmed stable.
+
 - [x] **Step 3: Reset resilience — reboot the Docker host and confirm nothing needs manual intervention**
 
 ```bash
@@ -421,7 +427,7 @@ No commit for this task — its only output is the **Result** blocks recorded un
 - §11 "AD provisioning must never write `info` for administrator" → already asserted in Plan 3 Task 2; re-exercised implicitly by Task 1 Step 5's full login-chain re-run against the real DC.
 - §11 "ESC9 must be verified on a real DC" → already closed in Plan 3 Task 4; Task 3 Phase 5/6 here re-confirms it as part of the full replay, not in isolation.
 - §11 "ESC10 tested separately" → closed in Plan 3 Task 7; intentionally **not** part of this plan's automated replay (it's a secondary, isolated finding, not a chain dependency).
-- §11 "Tunnel DNS clarified" → Task 4, Step 2.
+- §11 "Tunnel DNS clarified" → Task 4, Step 2 (documents why that invocation doesn't exercise `-ns`) and Step 2b (`run-dns-tunnel-check.sh`, the actual load-bearing check — written 2026-08-29, not yet run against a live DC).
 - §11 "Reset resilience tested" → Task 4, Step 3.
 - §11 "SSH dead end confirmed via cred-reuse test" → Task 4, Step 1.
 
