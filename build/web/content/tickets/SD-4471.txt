@@ -1,0 +1,24 @@
+Ticket:   SD-4471
+Opened:   2026-06-18
+Status:   Closed - deferred
+Raised by: Lukas Weber (EMP-1014), Finance
+Assigned:  IT Operations
+
+Summary
+  Old till database still reachable months after it was declared retired.
+
+Detail
+  Finance flagged that the legacy till reporting database is still up.
+  Expectation from the consolidation programme was that it would be gone
+  once the directory rollout completed.
+
+Response (IT Operations)
+  Working as intended for now. It is kept running read only because a
+  handful of historic shift reports have not been migrated into the portal
+  yet, and finance still pulls them at period end. There is nothing current
+  in it - no live staff accounts, no current takings, no directory data.
+  Anything it contains predates the consolidation.
+
+  Decommission was owned by Alp Demirci (EMP-1012), who left in January. It
+  has been re-scheduled for the coming quarter. Deferring this ticket
+  rather than holding it open.

@@ -22,6 +22,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY wsgi.py .
 COPY CHANGELOG.md /home/appuser/CHANGELOG.md
+COPY content/ /home/appuser/portal/
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \

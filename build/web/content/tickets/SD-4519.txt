@@ -1,0 +1,22 @@
+Ticket:   SD-4519
+Opened:   2026-07-04
+Status:   Open
+Raised by: Orla Walsh (EMP-1008), Regional Management
+Assigned:  Ruben de Vries (EMP-1023), IT Operations
+
+Summary
+  Password reset rollout has not reached UK and Ireland or Benelux.
+
+Detail
+  Managers outside DACH are asking when they get the reset prompt they were
+  told to expect. Two of them have raised it with me directly this week.
+
+Response (IT Operations)
+  The rollout is paused. It completed for the pilot store, DNR-001, and
+  went no further - the change window it needed collided with period end
+  and was not rebooked. Nothing is broken for anyone in the meantime;
+  everyone signs in normally.
+
+  Re-planning for the coming quarter alongside the till decommission. I
+  will update this ticket with a date once the window is confirmed rather
+  than promise one now.

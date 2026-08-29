@@ -1,0 +1,23 @@
+Ticket:   SD-4602
+Opened:   2026-08-11
+Status:   Closed - working as intended
+Raised by: Fatma Cetin (EMP-1038), DNR-022 London Dalston
+Assigned:  Tobias Bergmann (EMP-1011), IT Operations
+
+Summary
+  Report builder page will not open from my laptop.
+
+Detail
+  Reports link on the portal dashboard returns a forbidden page saying it
+  is for internal use only. Worked for me last quarter. Same result on the
+  store machine and on my laptop, on and off the store network.
+
+Response (IT Operations)
+  Working as intended. The report builder is not a page staff open
+  directly any more - it is internal use only and is driven by the nightly
+  batch that renders the ops-requested templates. Nothing was revoked from
+  your account.
+
+  If you need a template changed, raise it against IT Operations and we
+  will run it through the batch. Closing, since there is nothing to fix on
+  the account side.

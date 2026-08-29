@@ -1,0 +1,20 @@
+Ticket:   SD-4388
+Opened:   2026-06-02
+Status:   Closed
+Raised by: Jonas Becker (EMP-1034), DNR-014 Hamburg Altona
+Assigned:  Facilities
+
+Summary
+  Grill 2 tripping the circuit during evening service.
+
+Detail
+  Second grill cuts out roughly forty minutes into evening service. Single
+  line service since Thursday, covers down about fifteen percent. Reported
+  to facilities by phone as well.
+
+Resolution
+  Contractor replaced the contactor 2026-06-05. Confirmed stable over two
+  evening services. Closing.
+
+  Unrelated: the summer menu change (Kunefe added, Salgam retired in DACH)
+  lands 2026-07-01, tills need the new SKUs pushed before then.

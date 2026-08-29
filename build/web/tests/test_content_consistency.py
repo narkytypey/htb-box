@@ -121,3 +121,80 @@ def test_init_sql_adds_no_new_credential_columns():
     after_users = sql.split("CREATE TABLE IF NOT EXISTS stores", 1)[1]
     for banned in ("password", "passwd", "secret", "token", "hash", "MD5("):
         assert banned.lower() not in after_users.lower()
+
+
+CONTENT_DIR = REPO / "build" / "web" / "content"
+
+CREDENTIAL_PATTERNS = (
+    re.compile(r"\b[a-f0-9]{32}\b"),                 # md5-shaped
+    re.compile(r"(?i)pass(word|wd)\s*[:=]"),
+    re.compile(r"(?i)\bsecret\s*[:=]"),
+    re.compile(r"(?i)\btoken\s*[:=]"),
+)
+
+
+def content_text_files():
+    return sorted(
+        p for p in CONTENT_DIR.rglob("*")
+        if p.is_file() and p.suffix in {".md", ".txt"}
+    )
+
+
+def test_the_expected_content_documents_exist():
+    names = {p.name for p in content_text_files()}
+    assert names == {
+        "README.md",
+        "store-ops-runbook.md",
+        "SD-4388.txt",
+        "SD-4471.txt",
+        "SD-4519.txt",
+        "SD-4602.txt",
+    }
+
+
+def test_content_documents_reference_only_known_store_codes():
+    known = {r["code"] for r in load_stores()}
+    for path in content_text_files():
+        for code in set(STORE_CODE_RE.findall(path.read_text(encoding="ascii"))):
+            assert code in known, path.name
+
+
+def test_content_documents_reference_only_known_employee_ids():
+    known = {r["employee_id"] for r in load_employees()}
+    for path in content_text_files():
+        for emp in set(EMP_ID_RE.findall(path.read_text(encoding="ascii"))):
+            assert emp in known, path.name
+
+
+def test_content_documents_reference_only_known_people():
+    """A name drifting between a ticket and the directory is the exact
+    failure Approach C trades a generator away for."""
+    known = {r["display_name"] for r in load_employees()}
+    known_first = {n.split()[0] for n in known}
+    for path in content_text_files():
+        text = path.read_text(encoding="ascii")
+        for name in re.findall(r"\b[A-Z][a-z]+ [A-Z][a-z]+\b", text):
+            if name.split()[0] in known_first:
+                assert name in known, f"{path.name}: {name}"
+
+
+def test_content_documents_carry_no_credentials():
+    for path in content_text_files():
+        text = path.read_text(encoding="ascii")
+        for pattern in CREDENTIAL_PATTERNS:
+            assert not pattern.search(text), f"{path.name}: {pattern.pattern}"
+
+
+def test_content_documents_are_ascii_only():
+    for path in content_text_files():
+        path.read_text(encoding="ascii")
+
+
+def test_dockerfile_ships_the_content_tree_before_chown():
+    """The existing `chown -R appuser:appuser ... /home/appuser` must run
+    after the COPY, or the files land root-owned and appuser cannot read
+    them from the RCE foothold."""
+    dockerfile = (REPO / "build" / "web" / "Dockerfile").read_text(encoding="ascii")
+    copy_at = dockerfile.index("COPY content/")
+    chown_at = dockerfile.index("chown -R appuser:appuser")
+    assert copy_at < chown_at
