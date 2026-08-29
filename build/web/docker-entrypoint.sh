@@ -3,8 +3,11 @@ set -e
 
 if [ ! -f /home/appuser/user.txt ]; then
     python3 -c "import secrets; print(secrets.token_hex(16))" > /home/appuser/user.txt
-    chmod 400 /home/appuser/user.txt
-    chown appuser:appuser /home/appuser/user.txt
+    # HTB machine submission requirement: Linux user flag must be owned by
+    # root (in the user's group) with mode 644 -- root-owned so the
+    # compromised user can read but not silently overwrite/delete-and-forge it.
+    chown root:appuser /home/appuser/user.txt
+    chmod 644 /home/appuser/user.txt
 fi
 
 # Session signing key. Compose deliberately pins none (see the comment

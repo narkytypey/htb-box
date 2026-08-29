@@ -68,10 +68,16 @@ task's report.
 
 **Files:**
 - Create: `build/dc-provisioning/07-install-web-enrollment.ps1`
-- Create: `build/dc-provisioning/checks/07-check-web-enrollment.ps1`
-  (mirrors the existing `checks/` pattern for `04`/`05`/`06` — inspect
-  `build/dc-provisioning/checks/` for the exact naming and red/green output
-  convention already established there before writing this file)
+- Create: `build/dc-provisioning/checks/check-web-enrollment.ps1`
+  (confirmed 2026-08-28 against the live repo on Kali: the `checks/`
+  directory uses descriptive names with **no numeric prefix** —
+  `check-acl.ps1`, `check-cert-binding.ps1`, `check-domain.ps1`,
+  `check-esc9.sh`, `check-root-flag.ps1`, `check-users.ps1` — and each
+  script's entire body is just the assertion itself: `Write-Output "PASS:
+  <what held>"` on success, or `Write-Output "FAIL: <what didn't, with the
+  actual vs expected value>"` followed by `exit 1` on failure. No
+  wrapper function, no red/green color codes. Match this exactly — do not
+  invent a numbered filename or a heavier check-script structure.)
 
 **Interfaces:**
 - Consumes: `Donerup-CA` must already exist (`04-install-adcs-esc9.ps1`
@@ -128,13 +134,32 @@ path and guest credentials from that same memory before running anything.
 
 - [ ] **Step 3: Write the check script**
 
-Create `build/dc-provisioning/checks/07-check-web-enrollment.ps1` — read
-the existing `checks/04-*` or `checks/05-*` file first (whichever exists)
-to copy its exact red/green PASS/FAIL output format, then write the
-equivalent for Web Enrollment: assert `Get-WindowsFeature
-Adcs-Web-Enrollment` reports `Installed`, and that
-`Invoke-WebRequest http://localhost/certsrv/` (or `https://`, per whatever
-Step 2 discovers) returns `200`.
+Create `build/dc-provisioning/checks/check-web-enrollment.ps1`, matching
+`check-cert-binding.ps1`'s exact minimal style (no wrapper function, just
+the assertion and a `PASS:`/`FAIL:` `Write-Output` + `exit 1` on failure):
+
+```powershell
+$feature = (Get-WindowsFeature -Name Adcs-Web-Enrollment).InstallState
+if ($feature -ne "Installed") {
+    Write-Output "FAIL: Adcs-Web-Enrollment InstallState is '$feature', expected 'Installed'"
+    exit 1
+}
+try {
+    $resp = Invoke-WebRequest -Uri "http://localhost/certsrv/" -UseBasicParsing -TimeoutSec 10
+} catch {
+    Write-Output "FAIL: GET http://localhost/certsrv/ threw: $_"
+    exit 1
+}
+if ($resp.StatusCode -eq 200) {
+    Write-Output "PASS: AD CS Web Enrollment is installed and certsrv answers 200"
+} else {
+    Write-Output "FAIL: GET http://localhost/certsrv/ returned $($resp.StatusCode), expected 200"
+    exit 1
+}
+```
+
+Correct the URL scheme/host in this draft if Step 2's actual run shows
+Web Enrollment bound somewhere other than plain `http://localhost/certsrv/`.
 
 - [ ] **Step 4: Run the check, record the actual bound URL**
 
@@ -166,26 +191,26 @@ git commit -m "feat: install AD CS Web Enrollment role, the ESC8 precondition"
   `run-esc10-check.sh`'s convention exactly, so `full-chain-replay.sh`
   (Task 3) can call it the same way it calls the other check scripts.
 
-- [ ] **Step 1: Confirm or install the coercion tool on Kali**
+- [ ] **Step 1: Install the coercion tool on Kali**
 
-SSH to the Kali VM (per `donerup_lab_environment_state` for current
-access details) and check whether a PetitPotam-style MS-EFSRPC coercion
-client is already available:
+Confirmed 2026-08-28 against the live Kali VM: `ntlmrelayx.py`,
+`secretsdump.py`, and `certipy` are already present at `/usr/local/bin/`,
+but no PetitPotam-style coercion client is installed
+(`which petitpotam.py PetitPotam.py` and a full `find /` both came up
+empty). `git clone https://github.com/topotam/PetitPotam.git` **was
+confirmed reachable and cloned successfully** from Kali this same session
+— it contains `PetitPotam.py`. Install it for real use:
 
 ```bash
-which petitpotam.py PetitPotam.py 2>/dev/null
-python3 -c "import impacket; print(impacket.__file__)"
-find / -iname "*petitpotam*" 2>/dev/null
+mkdir -p ~/tools && cd ~/tools
+git clone --depth 1 https://github.com/topotam/PetitPotam.git
+python3 ~/tools/PetitPotam/PetitPotam.py --help
 ```
 
-If nothing is found, install the widely-used `topotam/PetitPotam` client
-(`git clone https://github.com/topotam/PetitPotam.git` — verify this
-repository is still reachable and matches the tool referenced in current
-public HTB/OSCP write-ups before relying on it; if it has moved or been
-archived, note the actual working alternative found and use that instead,
-recording the substitution in the task report rather than silently
-assuming the URL above is still correct). Record the exact working
-invocation path in the report — Step 2 needs it.
+Record the exact invocation path (`~/tools/PetitPotam/PetitPotam.py`) —
+Step 2's script assumes it is on `PATH` as `PetitPotam.py`; either add
+`~/tools/PetitPotam` to `PATH` or adjust Step 2's invocation to the full
+path.
 
 - [ ] **Step 2: Write the check script**
 

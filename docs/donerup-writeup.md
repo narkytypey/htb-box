@@ -2,11 +2,131 @@
 
 > **HTB writeup compliance note:** This document should only be distributed
 > once the box is retired / the box owner has approved sharing. Flag values
-> are **redacted** per HTB rules (`HTB{...}` format, real content hidden) —
-> the reader is expected to obtain the flag themselves. This writeup
+> are **redacted** — real HTB Machine flags are a raw 32-character
+> hexadecimal (MD5-format) string, *not* `HTB{...}`-wrapped (that wrapping
+> is a Challenge convention, not a Machine one) — the reader is expected to
+> obtain the flag themselves. This writeup
 > documents the step-by-step methodology for someone who has already solved
 > the box; it does not provide a shortcut or ready-made "cheat" script —
 > every step explains *why* it works.
+
+## Introduction
+
+Donerup targets the gap between a web-tier compromise and a domain
+compromise: two intentionally-realistic web bugs (an encoding/normalization
+ordering flaw in an LDAP filter, and a literal-substring-blacklist SSTI in
+Jinja2) hand a player RCE inside an unprivileged container, but that
+foothold sits on an isolated network segment with no direct route to the
+Active Directory VLAN. Reaching the DC requires actually pivoting, not just
+"already being on the right subnet." Once inside the AD VLAN, the intended
+path chains a real, still-seen-in-the-wild ADCS misconfiguration (ESC9,
+`NoSecurityExtension` on a UPN-bound template) through a `GenericWrite`
+edge via Shadow Credentials, ending in a certificate-based PKINIT and a
+DCSync. Skills exercised: LDAP injection root-causing, Jinja2 sandboxing
+weaknesses, ADCS template auditing (ESC9, and redundantly ESC10), AD ACL
+abuse, and network pivoting through an enforced default-deny boundary.
+
+## Info for HTB
+
+### Access
+
+Passwords:
+
+| User | Password | Notes |
+| --- | --- | --- |
+| `jdoe` | `SogukDonerAyran7` | Regular migrated employee; carries the legacy plaintext-equivalent credential in `info` (see the LDAP-injection section) but has no admin-panel access — a red herring, not a shortcut. |
+| `svc_ldap` | `KebapciBind2026!Sec` | The LDAP bind service account; also the "real path" credential the CHANGELOG.md hint leads a player to. Set in `build/dc-provisioning/02-create-users.ps1`. |
+| `svc_backup` | Random GUID, re-rolled on every provisioning run | Never meant to be known in plaintext — it's the GenericWrite victim, compromised via Shadow Credentials (`certipy shadow auto`), not by password. |
+| `Administrator` (domain) | *(fill in from the DC's Windows install — not stored in any script)* | Not needed to solve the box (compromised via the ESC9 → PKINIT → DCSync chain); provided here only so HTB staff can log in directly to verify. |
+| DSRM / local recovery | `R00tP@ssw0rd2026!` | Set during `dcpromo` in `build/dc-provisioning/01-promote-dc.ps1`. |
+
+### Key Processes
+
+- **`proxy`** (`build/proxy/`, nginx): TLS termination on 80/443, the only
+  published entry point — reverse-proxies to `web:5000` internally so a
+  player's first nmap sees the corporate portal, not a bare dev port.
+- **`web`** (`build/web/`, gunicorn + Flask on `python:3.12-slim`):
+  implements the corporate LDAP-themed SSO portal. Two deliberately
+  vulnerable surfaces: (1) the login form's LDAP filter is
+  sanitize-then-normalize instead of normalize-then-sanitize, letting
+  fullwidth Unicode parentheses smuggle real `(`/`)` past the blacklist;
+  (2) `/admin/report-template` feeds user input into a Jinja2
+  `Environment().from_string()` guarded only by a literal-substring
+  blacklist, defeated by string concatenation (`~`).
+- **`legacy-auth-db`** (`build/legacy-auth-db/`, MySQL): the intentional
+  rabbit hole — stale pre-migration test data, explicitly disclaimed as
+  not-current-credentials in `build/web/CHANGELOG.md`.
+- **AD CS on `DC01`**: `Donerup-CA` issues the `DonerupUserAuth`
+  certificate template, deliberately configured for ESC9
+  (`NoSecurityExtension` + `SubjectAltRequireUpn`) and, redundantly, ESC10
+  (works out of the box against this DC's default Schannel config — no
+  extra registry change was needed).
+
+### Automation / Crons
+
+- **`build/web/docker-entrypoint.sh`** (runs as root at container start):
+  mints `user.txt` once, idempotently; mints a fresh `FLASK_SECRET_KEY`
+  every start (a pinned constant would let the SSTI RCE's `env` access
+  forge an admin session, bypassing the LDAP injection entirely — see the
+  rationale comment in `docker-compose.yml`); and installs the AD-VLAN
+  kernel route by resolving the `internal-ad` interface from the routing
+  table rather than assuming an interface name.
+- **`build/dc-provisioning/06-place-root-flag.ps1`**: idempotent — a
+  re-run doesn't rotate a flag a player may already hold, but always
+  re-applies the ACL lockdown, so it also works as a repair step.
+- **`donerup-ad-pivot.service`** (`build/network/`, systemd unit wrapping
+  `setup-ad-pivot.sh`): re-applies the firewall chain below on every host
+  boot, so the isolation control isn't lost to a reboot.
+
+### Firewall Rules
+
+`build/network/setup-ad-pivot.sh` installs a `DONERUP_AD_PIVOT` chain
+hooked into Docker's `DOCKER-USER` chain (not `FORWARD` directly — Docker's
+own reconciliation never rewrites `DOCKER-USER`, so rules there survive a
+daemon restart):
+
+1. Explicit `DROP`: the HTB VPN client subnet → the AD VLAN (no direct
+   route in).
+2. `ACCEPT`: the `internal-ad` bridge (i.e. only the `web` container) → the
+   AD VLAN, plus the `ESTABLISHED,RELATED` return path.
+3. Default `DROP`: anything else addressed to the AD VLAN.
+4. `MASQUERADE`: `internal-ad` → AD VLAN traffic, NAT'd behind the host's
+   AD-VLAN IP so the DC never needs a route back into Docker's internal
+   `172.28.0.0/24` range.
+
+### Docker
+
+Three services, defined in `build/docker-compose.yml`:
+
+- `build/proxy/Dockerfile` — nginx TLS termination.
+- `build/web/Dockerfile` — the Flask/gunicorn app (`python:3.12-slim`).
+- `build/legacy-auth-db/Dockerfile` — the MySQL rabbit hole.
+
+Two networks: `dmz` (all three services) and `internal-ad` (Docker
+`internal: true`, only `web` and the AD VLAN gateway) — `web` is the sole
+bridge between the two.
+
+### Other
+
+- `FLASK_SECRET_KEY` is intentionally *not* pinned in `docker-compose.yml`
+  (see the comment there) — a constant value would be one `env` call away
+  from a forged session via the SSTI RCE, shortcutting past the LDAP
+  injection the box is built around.
+- ESC10 is a confirmed-working, fully redundant path to the same
+  `Administrator` cert (same UPN-swap technique, over LDAPS/Schannel
+  instead of Kerberos/PKINIT) — noted here so a future patch doesn't
+  silently close it without realizing it's a live alternate solve, not
+  dead code.
+- `legacy-auth-db` is an intentional rabbit hole with no real credentials;
+  acceptable at Insane difficulty, where HTB's own rating guidance permits
+  educational rabbit holes.
+- **Not yet exercised end-to-end in the build lab** (both need a real
+  VPN-side host, not the lab's direct AD-VLAN route): firewall rule 1
+  above (the VPN-subnet `DROP`), and the ligolo-ng tunnel itself.
+
+---
+
+# Writeup
 
 ## Machine Info
 
@@ -149,7 +269,7 @@ dropped from here (see §5).
 **`user.txt`** sits in `appuser`'s home directory:
 
 ```
-HTB{c█████████████████████████e}
+c██████████████████████████████e
 ```
 
 ---
@@ -278,7 +398,7 @@ wmiexec.py -hashes aad3b435b51404eeaad3b435b51404ee:<admin-nthash> \
 `SYSTEM:(F)`:
 
 ```
-HTB{r█████████████████████████t}
+r██████████████████████████████t
 ```
 
 ---
