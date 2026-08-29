@@ -274,3 +274,30 @@ def test_branding_form_page_renders_for_an_admin():
     resp = client.get("/admin/branding")
     assert resp.status_code == 200
     assert b"logo_url" in resp.data
+
+
+def test_login_page_carries_the_portal_build_tag():
+    client = make_app().test_client()
+    body = client.get("/login").data
+    assert b"Portal 2026.2.4" in body
+
+
+def test_login_page_keeps_its_original_hint_text_verbatim():
+    """The migration comment and the LDAP footer lines are the box's
+    earliest hint. Decor is added around them, never over them."""
+    client = make_app().test_client()
+    body = client.get("/login").data
+    assert b"migration note: local auth tables retired" in body
+    assert b"Authenticating against the corporate LDAP directory." in body
+
+
+def test_branding_page_never_hints_at_a_network_position():
+    """SSRF discoverability rests solely on the report-template 403. Copy
+    here that implies a network position would hand the player the answer."""
+    client = make_app().test_client()
+    with client.session_transaction() as sess:
+        sess["username"] = "administrator"
+        sess["is_privileged"] = True
+    body = client.get("/admin/branding").data.lower()
+    for giveaway in (b"internal", b"loopback", b"127.0.0.1", b"localhost", b"reachable"):
+        assert giveaway not in body
