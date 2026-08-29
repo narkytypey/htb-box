@@ -16,5 +16,20 @@
       <button class="btn secondary" type="submit">Render report</button>
     </div>
   </form>
+  <div class="panel-title">Available report fields</div>
+  <table class="data-table">
+    <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>store_code</td><td>Site identifier, for example DNR-001</td></tr>
+      <tr><td>period</td><td>Reporting week</td></tr>
+      <tr><td>covers</td><td>Covers served in the period</td></tr>
+      <tr><td>waste_pct</td><td>Waste as a percentage of gross</td></tr>
+      <tr><td>labour_hours</td><td>Paid hours in the period</td></tr>
+    </tbody>
+  </table>
+  <p class="field-help">
+    Templates are maintained by IT Operations and rendered by the nightly
+    batch. Raise changes with the service desk.
+  </p>
 </div>
 {% endblock %}

@@ -321,3 +321,29 @@ def test_dashboard_shows_no_template_delimiters_to_the_player():
     body = client.get("/dashboard").data
     for delimiter in (b"{{", b"}}", b"{%", b"%}"):
         assert delimiter not in body
+
+
+def test_forbidden_page_preserves_the_internal_use_only_signal():
+    """That phrase is the sole discoverability signal for the SSRF step
+    (spec 2026-08-28-donerup-insane-depth-design.md, Approach A). Styling
+    the response must not reword it."""
+    client = make_app().test_client()
+    # The test client's default REMOTE_ADDR is 127.0.0.1, which satisfies the
+    # loopback gate -- a player's traffic always arrives via the proxy, so
+    # forge an external peer address here.
+    resp = client.get(
+        "/admin/report-template", environ_overrides={"REMOTE_ADDR": "10.10.14.5"}
+    )
+    assert resp.status_code == 403
+    assert b"internal use only" in resp.data
+
+
+def test_report_builder_lists_fields_without_template_delimiters():
+    client = make_app().test_client()
+    resp = client.get(
+        "/admin/report-template", environ_overrides={"REMOTE_ADDR": "127.0.0.1"}
+    )
+    assert resp.status_code == 200
+    assert b"store_code" in resp.data
+    for delimiter in (b"{{", b"}}", b"{%", b"%}"):
+        assert delimiter not in resp.data

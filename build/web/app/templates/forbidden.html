@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Forbidden &mdash; Donerup{% endblock %}
+{% block content %}
+<div class="portal-bar">
+  <div class="mark-row">
+    {% include "_mark.html" %}
+    <span class="wordmark on-dark">Donerup</span>
+  </div>
+  <nav class="portal-nav"><span class="current">Forbidden</span></nav>
+</div>
+<div class="content-pad">
+  <div class="panel-title">Forbidden: internal use only</div>
+  <p class="field-help">
+    This page is not available from a staff workstation. If you need a
+    report template changed, raise it with the IT Service Desk.
+  </p>
+</div>
+{% endblock %}
