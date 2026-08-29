@@ -1,0 +1,41 @@
+code,city,district,region,opened_on,manager_employee_id
+DNR-001,Berlin,Mitte,DACH,2011-04-18,EMP-1031
+DNR-002,Berlin,Kreuzberg,DACH,2012-09-03,
+DNR-003,Munich,Schwabing,DACH,2013-02-25,
+DNR-004,Hamburg,St Pauli,DACH,2013-11-08,
+DNR-005,Cologne,Ehrenfeld,DACH,2014-05-16,
+DNR-006,London,Shoreditch,UK&I,2014-10-02,
+DNR-007,Frankfurt,Bockenheim,DACH,2015-03-27,
+DNR-008,Manchester,Rusholme,UK&I,2015-08-14,
+DNR-009,Stuttgart,Mitte,DACH,2016-01-22,
+DNR-010,Birmingham,Digbeth,UK&I,2016-06-10,
+DNR-011,Vienna,Favoriten,DACH,2016-11-04,
+DNR-012,Berlin,Neukolln,DACH,2017-03-17,
+DNR-013,Dublin,Parnell Street,UK&I,2017-07-28,
+DNR-014,Hamburg,Altona,DACH,2017-12-01,EMP-1034
+DNR-015,Glasgow,Finnieston,UK&I,2018-04-13,
+DNR-016,Dusseldorf,Bilk,DACH,2018-09-21,
+DNR-017,Leeds,Hyde Park,UK&I,2019-02-08,
+DNR-018,Zurich,Aussersihl,DACH,2019-06-28,
+DNR-019,London,Camden,UK&I,2019-11-15,
+DNR-020,Munich,Sendling,DACH,2020-02-21,
+DNR-021,Bristol,Stokes Croft,UK&I,2020-08-07,
+DNR-022,London,Dalston,UK&I,2021-01-29,EMP-1038
+DNR-023,Amsterdam,West,Benelux,2021-05-14,
+DNR-024,Leipzig,Sud,DACH,2021-10-01,
+DNR-025,Liverpool,Kensington,UK&I,2022-02-18,
+DNR-026,Nuremberg,Gostenhof,DACH,2022-07-08,
+DNR-027,London,Peckham,UK&I,2024-03-15,EMP-1041
+DNR-028,Brussels,Saint-Josse,Benelux,2022-11-25,
+DNR-029,Edinburgh,Leith,UK&I,2023-03-10,
+DNR-030,Berlin,Wedding,DACH,2023-07-21,
+DNR-031,Rotterdam,Centrum,Benelux,2023-12-08,EMP-1044
+DNR-032,The Hague,Schilderswijk,Benelux,2024-04-19,
+DNR-033,Vienna,Ottakring,DACH,2024-08-30,
+DNR-034,Antwerp,Borgerhout,Benelux,2024-11-22,
+DNR-035,Amsterdam,Zuid,Benelux,2025-02-14,EMP-1047
+DNR-036,Utrecht,Lombok,Benelux,2025-05-23,
+DNR-037,Cardiff,Cathays,UK&I,2025-08-01,
+DNR-038,Bremen,Neustadt,DACH,2025-10-17,
+DNR-039,Ghent,Rabot,Benelux,2026-01-30,
+DNR-040,Eindhoven,Woensel,Benelux,2026-04-24,

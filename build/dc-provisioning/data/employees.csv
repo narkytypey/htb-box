@@ -1,0 +1,23 @@
+sam,display_name,title,ou,office,mail,employee_id,manager_sam,groups,enabled,description
+dyilmaz,Deniz Yilmaz,Chief Operating Officer,Regional Management,Berlin,deniz.yilmaz@donerup.htb,EMP-1001,,,TRUE,Operations leadership. Sponsor of the franchise consolidation programme.
+sdemir,Selin Demir,Finance Director,Finance,Berlin,selin.demir@donerup.htb,EMP-1002,dyilmaz,Finance Reporting,TRUE,Owns period-end reporting across all three regions.
+mkaya,Merve Kaya,IT Operations Lead,IT,Berlin,merve.kaya@donerup.htb,EMP-1004,dyilmaz,IT Operations,TRUE,Runs the corporate directory and the store portal.
+hschulz,Hanna Schulz,Regional Manager DACH,Regional Management,Hamburg,hanna.schulz@donerup.htb,EMP-1006,dyilmaz,Regional Managers,TRUE,Eighteen stores across Germany Austria and Switzerland.
+owalsh,Orla Walsh,Regional Manager UK and Ireland,Regional Management,London,orla.walsh@donerup.htb,EMP-1008,dyilmaz,Regional Managers,TRUE,Thirteen stores across the UK and Ireland.
+pjanssen,Pieter Janssen,Regional Manager Benelux,Regional Management,Rotterdam,pieter.janssen@donerup.htb,EMP-1009,dyilmaz,Regional Managers,TRUE,Nine stores across the Netherlands and Belgium.
+tbergmann,Tobias Bergmann,Systems Administrator,IT,Berlin,tobias.bergmann@donerup.htb,EMP-1011,mkaya,IT Operations,TRUE,Portal and directory infrastructure. On call rotation A.
+aozturk,Ayla Ozturk,Service Desk Analyst,IT,Berlin,ayla.ozturk@donerup.htb,EMP-1019,mkaya,IT Operations,TRUE,First line support for store portal access requests.
+rdevries,Ruben de Vries,Identity Engineer,IT,Rotterdam,ruben.devries@donerup.htb,EMP-1023,mkaya,IT Operations,TRUE,Ran the one time directory migration. Owns the password reset rollout.
+lweber,Lukas Weber,Financial Analyst,Finance,Berlin,lukas.weber@donerup.htb,EMP-1014,sdemir,Finance Reporting,TRUE,Weekly margin and waste analysis.
+nkoc,Naz Koc,Payroll Specialist,Finance,Berlin,naz.koc@donerup.htb,EMP-1017,sdemir,Finance Reporting,TRUE,Shift hours reconciliation for DACH payroll.
+earslan,Emre Arslan,Store Manager DNR-001,Store Operations,Berlin,emre.arslan@donerup.htb,EMP-1031,hschulz,Store Managers|Portal Report Authors,TRUE,Manager of the pilot store for the directory migration.
+jbecker,Jonas Becker,Store Manager DNR-014,Store Operations,Hamburg,jonas.becker@donerup.htb,EMP-1034,hschulz,Store Managers|Portal Report Authors,TRUE,Covering DNR-004 while that post is vacant.
+fcetin,Fatma Cetin,Store Manager DNR-022,Store Operations,London,fatma.cetin@donerup.htb,EMP-1038,owalsh,Store Managers|Portal Report Authors,TRUE,Highest covers per shift in the UK and Ireland region.
+mokonkwo,Michael Okonkwo,Store Manager DNR-027,Store Operations,London,michael.okonkwo@donerup.htb,EMP-1041,owalsh,Store Managers|Portal Report Authors,TRUE,Opened the Peckham site in 2024.
+sbakker,Sanne Bakker,Store Manager DNR-031,Store Operations,Rotterdam,sanne.bakker@donerup.htb,EMP-1044,pjanssen,Store Managers|Portal Report Authors,TRUE,Benelux pilot site for the new till hardware.
+ktoprak,Kerem Toprak,Store Manager DNR-035,Store Operations,Amsterdam,kerem.toprak@donerup.htb,EMP-1047,pjanssen,Store Managers|Portal Report Authors,TRUE,Manages the Amsterdam Zuid site.
+lfischer,Lena Fischer,Shift Supervisor,Store Operations,Hamburg,lena.fischer@donerup.htb,EMP-1052,jbecker,,TRUE,Evening shift supervisor DNR-014.
+bsahin,Burak Sahin,Shift Supervisor,Store Operations,Berlin,burak.sahin@donerup.htb,EMP-1055,earslan,Till Support (legacy),TRUE,Last remaining trained operator for the retired till system.
+cmurphy,Ciara Murphy,Area Trainer UK and Ireland,Store Operations,London,ciara.murphy@donerup.htb,EMP-1058,owalsh,,TRUE,New starter onboarding across the UK and Ireland region.
+gvogel,Greta Vogel,Store Manager (left 2026-03),Leavers,Hamburg,,EMP-1029,,,FALSE,Left the business 2026-03. DNR-004 manager post still vacant.
+ademirci,Alp Demirci,Till Support Engineer (left 2026-01),Leavers,Berlin,,EMP-1012,,Till Support (legacy),FALSE,Left the business 2026-01. Owned the legacy till system decommission.
