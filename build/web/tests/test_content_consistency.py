@@ -92,3 +92,32 @@ def test_every_store_manager_reference_resolves():
 def test_spine_files_are_ascii_only():
     for path in (EMPLOYEES_CSV, STORES_CSV):
         path.read_text(encoding="ascii")  # raises UnicodeDecodeError otherwise
+
+
+INIT_SQL = REPO / "build" / "legacy-auth-db" / "init.sql"
+
+
+def test_init_sql_only_references_known_store_codes():
+    sql = INIT_SQL.read_text(encoding="ascii")
+    known = {r["code"] for r in load_stores()}
+    for code in set(STORE_CODE_RE.findall(sql)):
+        assert code in known
+
+
+def test_init_sql_ships_the_shift_reports_changelog_promises():
+    """CHANGELOG.md says the database is kept online 'only for a handful of
+    legacy read-only shift reports'. Before this content layer that claim was
+    false, which made the rabbit hole read as an authoring gap rather than a
+    decommissioned system."""
+    sql = INIT_SQL.read_text(encoding="ascii").lower()
+    for table in ("stores", "menu_items", "shifts", "shift_reports"):
+        assert f"create table if not exists {table}" in sql
+
+
+def test_init_sql_adds_no_new_credential_columns():
+    """Strict credential policy: the three existing MD5 rows are the only
+    credential-shaped strings allowed in filler content."""
+    sql = INIT_SQL.read_text(encoding="ascii")
+    after_users = sql.split("CREATE TABLE IF NOT EXISTS stores", 1)[1]
+    for banned in ("password", "passwd", "secret", "token", "hash", "MD5("):
+        assert banned.lower() not in after_users.lower()
