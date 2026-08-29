@@ -387,11 +387,11 @@ Expected: `PASS: direct-IP LDAP bind + full certipy enumeration against the DC s
 
 **Result (2026-08-28):** `PASS: direct-IP LDAP bind + full certipy enumeration against the DC succeeded`. Per this step's own caveat, that closes nothing about DNS: `-ns` was inert because `-dc-ip` was an IP literal, so spec S11's "Tunnel DNS via `-ns <DC_IP>`" item remains **open** and still needs a check where `-ns` is load-bearing (a hostname target with no `-dc-ip`).
 
-- [ ] **Step 2b: The actual `-ns`-load-bearing check this step deferred**
+- [x] **Step 2b: The actual `-ns`-load-bearing check this step deferred**
 
-`build/exploit/run-dns-tunnel-check.sh <dc-ip> <svc_ldap-password>` (written 2026-08-29, not yet run). Drops `-dc-ip` entirely and uses a hostname-form principal (`svc_ldap@donerup.htb`) with `-ns <DC_IP>`, so certipy's resolver is genuinely exercised — the exact gap Step 2 itself calls out. Same `"Enumeration output:"` marker gate as Step 2, plus a documented precondition to check first: confirm `donerup.htb`/`dc01.donerup.htb` has no static `/etc/hosts` or non-DC resolver entry on the attacker box, or a PASS here wouldn't prove `-ns` did anything.
+`build/exploit/run-dns-tunnel-check.sh <dc-ip> <svc_ldap-password>` (written 2026-08-29). Drops `-dc-ip` entirely and uses a hostname-form principal (`svc_ldap@donerup.htb`) with `-ns <DC_IP>`, so certipy's resolver is genuinely exercised — the exact gap Step 2 itself calls out.
 
-**Not run yet as of 2026-08-29** — DC01 was mid-rebuild onto Windows Server 2025 (separate VM, old 2022 one untouched) under a parallel session's provisioning pass when this script was written; run it once that DC is confirmed stable.
+**Result (2026-08-29):** `PASS: DNS resolution via -ns 10.10.20.10 (no -dc-ip) + full certipy enumeration succeeded`, run against the rebuilt Server 2025 DC. The precondition this step's own header flags turned out to be live: Kali's `/etc/hosts` already carries a static `10.10.20.10 dc01.donerup.htb dc01` entry, which could have made a PASS meaningless (satisfied by the hosts file, not `-ns`). Closed with a necessity test instead of trusting the PASS alone: re-ran with a deliberately bogus `-ns 10.10.20.99` (unreachable, cannot resolve the domain) and got a clean `FAIL` — proving certipy's resolver genuinely depends on `-ns` and does not fall back to the system/`/etc/hosts` resolution path. Spec §11's "Tunnel DNS via `-ns <DC_IP>`" item is now genuinely closed, not just documented as closeable.
 
 - [x] **Step 3: Reset resilience — reboot the Docker host and confirm nothing needs manual intervention**
 
