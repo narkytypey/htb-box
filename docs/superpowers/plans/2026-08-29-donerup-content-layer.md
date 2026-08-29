@@ -1,6 +1,6 @@
 # Donerup Content Layer Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Fill the Donerup box with a coherent, inert content layer — AD roster, web copy, container documents, and legacy-database decor — without touching a single link of the verified exploitation chain.
 
@@ -44,7 +44,7 @@ cd build/web && python -m pytest tests/ -v
 - Consumes: nothing.
 - Produces: `load_employees() -> list[dict]` and `load_stores() -> list[dict]` in `test_content_consistency.py`, plus module constants `REPO`, `EMPLOYEES_CSV`, `STORES_CSV`. Tasks 2, 3, 5 and 6 import these helpers from the same module.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `build/web/tests/test_content_consistency.py`:
 
@@ -145,12 +145,12 @@ def test_spine_files_are_ascii_only():
         path.read_text(encoding="ascii")  # raises UnicodeDecodeError otherwise
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `cd build/web && python -m pytest tests/test_content_consistency.py -v`
 Expected: FAIL — `FileNotFoundError` for `employees.csv`.
 
-- [ ] **Step 3: Create `build/dc-provisioning/data/employees.csv`**
+- [x] **Step 3: Create `build/dc-provisioning/data/employees.csv`**
 
 ```csv
 sam,display_name,title,ou,office,mail,employee_id,manager_sam,groups,enabled,description
@@ -178,7 +178,7 @@ gvogel,Greta Vogel,Store Manager (left 2026-03),Leavers,Hamburg,,EMP-1029,,,FALS
 ademirci,Alp Demirci,Till Support Engineer (left 2026-01),Leavers,Berlin,,EMP-1012,,Till Support (legacy),FALSE,Left the business 2026-01. Owned the legacy till system decommission.
 ```
 
-- [ ] **Step 4: Create `build/web/content/data/stores.csv`**
+- [x] **Step 4: Create `build/web/content/data/stores.csv`**
 
 Store codes are deliberately not contiguous by region — the chain opened sites across all three regions over fourteen years, so codes interleave. `DNR-004` has an empty manager because `gvogel` left in March and the post is still vacant.
 
@@ -226,12 +226,12 @@ DNR-039,Ghent,Rabot,Benelux,2026-01-30,
 DNR-040,Eindhoven,Woensel,Benelux,2026-04-24,
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `cd build/web && python -m pytest tests/test_content_consistency.py -v`
 Expected: PASS, 9 tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add build/dc-provisioning/data/employees.csv build/web/content/data/stores.csv build/web/tests/test_content_consistency.py
@@ -254,7 +254,7 @@ Resolves the contradiction named in the spec's Problem section: `CHANGELOG.md` c
 
 Note, already verified: `full-chain-replay.sh:92` runs only `SELECT username FROM legacy_auth.users`, so appending tables cannot affect the rabbit-hole phase assertion.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `build/web/tests/test_content_consistency.py`:
 
@@ -288,12 +288,12 @@ def test_init_sql_adds_no_new_credential_columns():
         assert banned.lower() not in after_users.lower()
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `cd build/web && python -m pytest tests/test_content_consistency.py -k init_sql -v`
 Expected: FAIL — `test_init_sql_ships_the_shift_reports_changelog_promises` fails on the missing tables, and `test_init_sql_adds_no_new_credential_columns` fails with `IndexError` because the split marker is absent.
 
-- [ ] **Step 3: Append the decor tables to `build/legacy-auth-db/init.sql`**
+- [x] **Step 3: Append the decor tables to `build/legacy-auth-db/init.sql`**
 
 Leave every existing line untouched and append:
 
@@ -379,17 +379,17 @@ INSERT INTO shift_reports (shift_id, covers, gross_cents, waste_pct, note) VALUE
     (9, 149, 143600, 3.10, NULL);
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `cd build/web && python -m pytest tests/test_content_consistency.py -v`
 Expected: PASS, 12 tests.
 
-- [ ] **Step 5: Verify the rabbit-hole replay assertion is unaffected**
+- [x] **Step 5: Verify the rabbit-hole replay assertion is unaffected** -- verified 2026-08-29, see Execution record
 
 Run: `cd build && docker compose up -d --build legacy-auth-db && docker compose exec -T legacy-auth-db mysql -uroot -p'DonerciKral99!' -e "SELECT username FROM legacy_auth.users;"`
 Expected: exactly the header `username` plus `test_user1`, `test_user2`, `demo` — no other rows, and none of `svc_ldap`, `administrator`, `jdoe`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add build/legacy-auth-db/init.sql build/web/tests/test_content_consistency.py
@@ -414,7 +414,7 @@ git commit -m "feat: ship the shift-report data CHANGELOG.md already promised"
 - Consumes: `load_employees`, `load_stores`, `REPO`, `STORE_CODE_RE`, `EMP_ID_RE` from Task 1.
 - Produces: `CONTENT_DIR` and `content_text_files() -> list[Path]`, used by nothing later but kept for symmetry.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `build/web/tests/test_content_consistency.py`:
 
@@ -496,12 +496,12 @@ def test_dockerfile_ships_the_content_tree_before_chown():
     assert copy_at < chown_at
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `cd build/web && python -m pytest tests/test_content_consistency.py -k "content or dockerfile" -v`
 Expected: FAIL — `test_the_expected_content_documents_exist` reports an empty set (only `data/stores.csv` exists, which has no `.md`/`.txt` suffix).
 
-- [ ] **Step 3: Create `build/web/content/README.md`**
+- [x] **Step 3: Create `build/web/content/README.md`**
 
 ```markdown
 # Donerup Store Portal
@@ -526,7 +526,7 @@ raise them against this repository - directory accounts are not managed
 here.
 ```
 
-- [ ] **Step 4: Create `build/web/content/docs/store-ops-runbook.md`**
+- [x] **Step 4: Create `build/web/content/docs/store-ops-runbook.md`**
 
 ```markdown
 # Store Operations Runbook - Shift Reporting
@@ -566,7 +566,7 @@ Grill and fryer faults go to facilities, not the service desk. Portal
 faults go to the service desk.
 ```
 
-- [ ] **Step 5: Create the four ticket files**
+- [x] **Step 5: Create the four ticket files**
 
 `build/web/content/tickets/SD-4388.txt`:
 
@@ -677,7 +677,7 @@ Response (IT Operations)
   the account side.
 ```
 
-- [ ] **Step 6: Add the `COPY` to `build/web/Dockerfile`**
+- [x] **Step 6: Add the `COPY` to `build/web/Dockerfile`**
 
 Insert immediately after the existing `COPY CHANGELOG.md /home/appuser/CHANGELOG.md` line, so it lands before the `RUN chmod ... && chown -R appuser:appuser` line:
 
@@ -685,17 +685,17 @@ Insert immediately after the existing `COPY CHANGELOG.md /home/appuser/CHANGELOG
 COPY content/ /home/appuser/portal/
 ```
 
-- [ ] **Step 7: Run the test to verify it passes**
+- [x] **Step 7: Run the test to verify it passes**
 
 Run: `cd build/web && python -m pytest tests/test_content_consistency.py -v`
 Expected: PASS, 19 tests.
 
-- [ ] **Step 8: Verify the files are readable as `appuser` in the built image**
+- [x] **Step 8: Verify the files are readable as `appuser` in the built image**
 
 Run: `cd build && docker compose build web && docker compose up -d web && docker compose exec -T -u appuser web ls -la /home/appuser/portal/tickets/`
 Expected: four `SD-*.txt` files listed, owned by `appuser`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add build/web/content build/web/Dockerfile build/web/tests/test_content_consistency.py
@@ -716,7 +716,7 @@ git commit -m "feat: ship the portal document tree into the web container"
 - Consumes: nothing.
 - Produces: CSS classes `.build-tag` and `.field-help`, reused by Tasks 5 and 6.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `build/web/tests/test_webapp.py`:
 
@@ -748,12 +748,12 @@ def test_branding_page_never_hints_at_a_network_position():
         assert giveaway not in body
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `cd build/web && python -m pytest tests/test_webapp.py -k "build_tag or hint_text or network_position" -v`
 Expected: FAIL — `test_login_page_carries_the_portal_build_tag` fails; the other two pass already and are regression guards.
 
-- [ ] **Step 3: Add the decor to `login.html`**
+- [x] **Step 3: Add the decor to `login.html`**
 
 Leave the HTML comment and the `fineprint` footer exactly as they are. Replace only the `<footer class="fineprint">` block's closing region by appending a build tag after it:
 
@@ -768,7 +768,7 @@ Leave the HTML comment and the `fineprint` footer exactly as they are. Replace o
     </p>
 ```
 
-- [ ] **Step 4: Add the field guidance to `branding.html`**
+- [x] **Step 4: Add the field guidance to `branding.html`**
 
 Replace the existing `<div class="field">` block with:
 
@@ -784,7 +784,7 @@ Replace the existing `<div class="field">` block with:
     </div>
 ```
 
-- [ ] **Step 5: Add the two CSS classes to `donerup.css`**
+- [x] **Step 5: Add the two CSS classes to `donerup.css`**
 
 Append, matching the existing `.fineprint` idiom:
 
@@ -805,12 +805,12 @@ Append, matching the existing `.fineprint` idiom:
 }
 ```
 
-- [ ] **Step 6: Run the whole web suite**
+- [x] **Step 6: Run the whole web suite**
 
 Run: `cd build/web && python -m pytest tests/ -v`
 Expected: PASS — including the pre-existing `test_login_page_seeds_the_ldap_theme`, which proves the new copy introduced none of the banned giveaway substrings.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add build/web/app/templates/login.html build/web/app/templates/branding.html build/web/app/static/css/donerup.css build/web/tests/test_webapp.py
@@ -832,7 +832,7 @@ The largest single gain: the dashboard currently renders one line. Constraint C2
 - Consumes: `load_stores` from Task 1; `.field-help` from Task 4.
 - Produces: CSS classes `.kpi-strip`, `.kpi`, `.data-table`, `.notice`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `build/web/tests/test_webapp.py`:
 
@@ -870,12 +870,12 @@ def test_templates_reference_only_known_store_codes():
             assert code in known, path.name
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd build/web && python -m pytest tests/test_webapp.py -k dashboard tests/test_content_consistency.py -k templates -v`
 Expected: FAIL — `test_dashboard_renders_the_store_operations_content` fails on the missing `DNR-001`.
 
-- [ ] **Step 3: Rewrite the body of `dashboard.html`**
+- [x] **Step 3: Rewrite the body of `dashboard.html`**
 
 Everything new goes **above** the existing `welcome-block`. Keep the existing comment block and the welcome markup exactly as they are, and keep them last — the file must still end with `Welcome, {{ account_name }}` and no closing tag.
 
@@ -925,7 +925,7 @@ Insert between the `portal-bar` div and the existing comment block:
 </div>
 ```
 
-- [ ] **Step 4: Add the CSS**
+- [x] **Step 4: Add the CSS**
 
 Append to `donerup.css`, following the existing `.panel-title` and `.portal-bar` idiom:
 
@@ -996,12 +996,12 @@ Append to `donerup.css`, following the existing `.panel-title` and `.portal-bar`
 }
 ```
 
-- [ ] **Step 5: Run the whole web suite**
+- [x] **Step 5: Run the whole web suite**
 
 Run: `cd build/web && python -m pytest tests/ -v`
 Expected: PASS — critically including the untouched `test_dashboard_never_echoes_the_injection_payload` (C2).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add build/web/app/templates/dashboard.html build/web/app/static/css/donerup.css build/web/tests/test_webapp.py build/web/tests/test_content_consistency.py
@@ -1022,7 +1022,7 @@ git commit -m "feat: build out the dashboard as a real store ops landing screen"
 - Consumes: `.field-help` from Task 4, `.data-table` from Task 5.
 - Produces: nothing later tasks depend on.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `build/web/tests/test_webapp.py`:
 
@@ -1048,12 +1048,12 @@ def test_report_builder_lists_fields_without_template_delimiters():
         assert delimiter not in resp.data
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `cd build/web && python -m pytest tests/test_webapp.py -k "forbidden_page or lists_fields" -v`
 Expected: FAIL — `test_report_builder_lists_fields_without_template_delimiters` fails on the missing `store_code`. `test_forbidden_page_preserves_the_internal_use_only_signal` passes already and is the regression guard for Step 4.
 
-- [ ] **Step 3: Add the field list to `report_template.html`**
+- [x] **Step 3: Add the field list to `report_template.html`**
 
 Insert after the `report-actions` div, inside `content-pad`:
 
@@ -1077,7 +1077,7 @@ Insert after the `report-actions` div, inside `content-pad`:
 
 Field names appear bare. No braces, on this or any other surface.
 
-- [ ] **Step 4: Create `build/web/app/templates/forbidden.html`**
+- [x] **Step 4: Create `build/web/app/templates/forbidden.html`**
 
 ```html
 {% extends "base.html" %}
@@ -1100,7 +1100,7 @@ Field names appear bare. No braces, on this or any other surface.
 {% endblock %}
 ```
 
-- [ ] **Step 5: Render it from `webapp.py`**
+- [x] **Step 5: Render it from `webapp.py`**
 
 Replace line 66 only. Leave the whole comment block above it untouched:
 
@@ -1109,12 +1109,12 @@ Replace line 66 only. Leave the whole comment block above it untouched:
             return render_template("forbidden.html"), 403
 ```
 
-- [ ] **Step 6: Run the whole web suite**
+- [x] **Step 6: Run the whole web suite**
 
 Run: `cd build/web && python -m pytest tests/ -v`
 Expected: PASS — including every pre-existing `report-template` gate test.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add build/web/app/templates/report_template.html build/web/app/templates/forbidden.html build/web/app/webapp.py build/web/tests/test_webapp.py
@@ -1135,7 +1135,7 @@ Runs against the live DC VM. Requires the lab to be up.
 - Consumes: `build/dc-provisioning/data/employees.csv` from Task 1.
 - Produces: 22 AD accounts, four sub-OUs under `OU=Employees`, `OU=Leavers`, and six groups.
 
-- [ ] **Step 1: Write the failing checks**
+- [x] **Step 1: Write the failing checks**
 
 Append to `build/dc-provisioning/checks/check-users.ps1`, before the final `if ($failures -gt 0) { exit 1 }`:
 
@@ -1195,12 +1195,12 @@ if (-not (Test-Path $rosterPath)) {
 }
 ```
 
-- [ ] **Step 2: Run the checks on the DC to verify they fail**
+- [x] **Step 2: Run the checks on the DC to verify they fail**
 
 Run on the DC: `powershell -NoProfile -File .\checks\check-users.ps1`
 Expected: FAIL — 22 lines of `roster account <sam> does not exist`, and a non-zero exit.
 
-- [ ] **Step 3: Append the provisioning loop to `02-create-users.ps1`**
+- [x] **Step 3: Append the provisioning loop to `02-create-users.ps1`**
 
 Append at the end of the file. Every existing block, including the `administrator.info` assertion, stays verbatim above it.
 
@@ -1293,24 +1293,24 @@ Set-ADUser -Identity jdoe -Description "Migration pilot test account, DNR-001. R
 Write-Output "jdoe description set"
 ```
 
-- [ ] **Step 4: Copy the CSV to the DC and run provisioning**
+- [x] **Step 4: Copy the CSV to the DC and run provisioning**
 
 The provisioning directory is copied to the DC as a unit; confirm `data\employees.csv` travelled with it, then run:
 
 `powershell -NoProfile -File .\02-create-users.ps1`
 Expected: four `created OU:` lines, one for `Leavers`, six `created group:` lines, 22 `created <sam>` lines, then the pass-2 and jdoe lines.
 
-- [ ] **Step 5: Run it a second time to prove idempotency**
+- [x] **Step 5: Run it a second time to prove idempotency**
 
 Run: `powershell -NoProfile -File .\02-create-users.ps1`
 Expected: every line reports "already present"; no errors; exit 0. A box reset must be able to re-run this safely.
 
-- [ ] **Step 6: Run the checks to verify they pass**
+- [x] **Step 6: Run the checks to verify they pass**
 
 Run: `powershell -NoProfile -File .\checks\check-users.ps1`
 Expected: PASS on all four original assertions plus the three new ones; exit 0.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add build/dc-provisioning/02-create-users.ps1 build/dc-provisioning/checks/check-users.ps1
@@ -1330,37 +1330,37 @@ The content layer touches no chain mechanic by design. This task proves it again
 - Consumes: everything from Tasks 1-7.
 - Produces: nothing.
 
-- [ ] **Step 1: Rebuild and bring the stack up**
+- [x] **Step 1: Rebuild and bring the stack up**
 
 Run: `cd build && docker compose build && docker compose up -d`
 Expected: all three services healthy.
 
-- [ ] **Step 2: Run the full Python suite**
+- [x] **Step 2: Run the full Python suite**
 
 Run: `cd build/web && python -m pytest tests/ -v`
 Expected: PASS, no skips.
 
-- [ ] **Step 3: Run the live integration smoke test through the proxy**
+- [x] **Step 3: Run the live integration smoke test through the proxy**
 
 Run: `cd build/web && BASE_URL=https://localhost python3 tests/integration_smoke.py`
 Expected: PASS. This is the load-bearing check that full-width Unicode LDAP payloads and the branding-SSRF-to-SSTI hop still work through nginx after the template changes.
 
-- [ ] **Step 4: Run the full chain replay**
+- [x] **Step 4: Run the full chain replay**
 
 Run: `cd build/exploit && ./full-chain-replay.sh`
 Expected: every phase PASS. Phase 2 in particular must still report "rabbit hole contains no real AD account names" — it selects only `username` from `legacy_auth.users`, which Task 2 left untouched.
 
-- [ ] **Step 5: Confirm the roster from the attacker's side of the tunnel**
+- [x] **Step 5: Confirm the roster from the attacker's side of the tunnel**
 
 Run, over the established pivot: `bloodhound-python -u svc_ldap -p '<svc_ldap password>' -d donerup.htb -c All -dc dc01.donerup.htb`
 Expected: the collection returns the roster and groups, and the `svc_ldap -> svc_backup` `GenericWrite` edge is still present and still the only interesting edge in the graph.
 
-- [ ] **Step 6: Sanity-check login latency against the larger directory**
+- [x] **Step 6: Sanity-check login latency against the larger directory**
 
 Run: `curl -sk -o /dev/null -w "%{time_total}\n" -X POST https://localhost/login -d 'username=jdoe&password=SogukDonerAyran7'`
 Expected: comparable to the pre-roster timing. Every login is a subtree search; 25 accounts should be immeasurable, but this closes the spec's open question rather than assuming it.
 
-- [ ] **Step 7: Commit any fixes**
+- [x] **Step 7: Commit any fixes**
 
 If Steps 1-6 all pass, there is nothing to commit and the plan is complete. If any step failed, fix the cause, re-run that step and every later one, then commit:
 
@@ -1376,3 +1376,106 @@ git commit -m "fix: <what the live sweep turned up>"
 - **Spec coverage.** Canon → Tasks 1-3 content; Layer 1 (AD) → Task 7; Layer 2 (web) → Tasks 4-6; Layer 3 (container) → Task 3; Layer 4 (legacy DB) → Task 2; Consistency → Tasks 1-3, 5; every "Risks and open questions" item → Task 8, except the CSS-effort risk, which is addressed by Tasks 4-6 reusing the existing `.panel-title`/`.portal-bar` idiom rather than introducing a second visual language.
 - **One spec risk closed early.** The spec listed "`full-chain-replay.sh` has not been read for content assertions" as its one non-static risk. It has now been read: line 92 runs `SELECT username FROM legacy_auth.users` and nothing else, so Task 2 cannot affect it. Task 8 Step 4 still runs the replay end to end.
 - **Type consistency.** `load_employees` / `load_stores` / `REPO` / `STORE_CODE_RE` / `EMP_ID_RE` are defined once in Task 1 and used unchanged in Tasks 2, 3 and 5. CSV column names (`sam`, `display_name`, `employee_id`, `manager_sam`, `groups`, `enabled`) are identical in the Python tests and the PowerShell `Import-Csv` consumer.
+
+
+---
+
+## Execution record
+
+Executed 2026-08-29 across two sessions on branch `build/donerup`. Tasks 1-6
+and the `--rule` follow-up in this session; Task 7 and the Task 8 live sweep
+in a parallel session against the real lab (DC via vmrun, Docker stack on the
+Kali VM).
+
+```
+c28dcee  Task 1  data spine (22 employees + 40 stores)
+689e986  Task 2  legacy DB decor tables
+131402d  Task 3  container document tree + Dockerfile COPY
+a5ee9b7  Task 4  login and branding copy
+8a133e1  Task 5  dashboard build-out
+6bb6653  Task 6  report builder fields + styled 403
+c9daf05  style   --rule token for the table hairline
+1f660a4  Task 7  AD roster provisioning (verified against the live DC)
+609e00a  fix     run-certifried-check.sh mode bit
+```
+
+### Live verification (Task 8)
+
+- pytest: 79 passed, no skips.
+- `integration_smoke.py` through nginx: 8/8 PASS. Full-width Unicode LDAP
+  payloads and the branding-SSRF-to-SSTI hop both survive the four template
+  changes, the new `forbidden.html`, and the `webapp.py:66` swap from a bare
+  string to `render_template`.
+- `full-chain-replay.sh`: exit 0, all phases PASS.
+- Task 3 Step 8: all seven files under `/home/appuser/portal` are
+  `appuser`-owned and readable inside the container.
+- BloodHound: 29 users, 8 OUs. All 909 ACE edges parsed. The
+  `svc_ldap -> svc_backup` `GenericWrite` edge is intact and remains the only
+  edge between them; the 22 roster principals hold **zero** outbound ACEs and
+  open **zero** new paths into any privileged principal. The roster is graph
+  noise exactly as the spec required.
+- Login latency: ~57ms mean over 6 runs through nginx including TLS and a
+  real DC bind. Reported as an unbaselined absolute -- no pre-roster
+  measurement exists to compute a delta against.
+
+### Open item: Task 2's SQL has never executed -- RESOLVED 2026-08-29
+
+Originally: `legacy-auth-db` mounted an **anonymous** Docker volume at
+`/var/lib/mysql` which survived the compose recreate, so MySQL found an
+initialised datadir and skipped `/docker-entrypoint-initdb.d` entirely --
+the four decor tables were absent from the running lab database and the
+appended SQL had never been parsed by a server. The user initially decided
+not to force this, deferring to the next clean deploy.
+
+**Reversed later the same day**, on the live Kali lab
+(`192.168.122.128`, VM started headless per [[ask_before_changing_vm_state]]):
+`sudo docker compose rm -f -s -v legacy-auth-db && sudo docker compose up -d
+legacy-auth-db` dropped the anonymous volume and forced a real
+`docker-entrypoint-initdb.d/init.sql` run. Result: clean init, no SQL errors
+in the container log, all five tables present
+(`users`, `stores`, `menu_items`, `shifts`, `shift_reports`) with row counts
+matching the plan (3/7/10/9/9). The exact Phase 2 replay query
+(`SELECT username FROM legacy_auth.users`) still returns only
+`test_user1`/`test_user2`/`demo` -- no `svc_ldap`/`administrator`/`jdoe`
+leakage. Full `pytest tests/` also reran clean: 79 passed.
+
+`integration_smoke.py`'s LDAP-backed tests could not be re-verified in this
+pass -- DC01 was powered off at the time (`No route to host` from the web
+container's `real_ldap_connection()`), unrelated to this change and left
+alone rather than starting the DC mid a separate in-progress DC-rebuild
+conversation on Windows Server 2025 (see [[donerup_lab_environment_state]]).
+The MySQL-only assertions this task actually cares about are now genuinely
+verified; the LDAP path was already covered by the 2026-08-28 full replay
+and is orthogonal to Task 2's content.
+
+### Defects found while executing
+
+Four, none of which the plan anticipated:
+
+1. **White-on-white CSS** (this session, Tasks 4-5). Seven new classes were
+   written as translucent white on the portal's white body, rendering the
+   entire dashboard build-out invisible. Caught in review by a parallel
+   design session, which saw two of the seven; the other five were found by
+   widening the check. Fixed against the theme tokens and locked by
+   `test_stylesheet_never_uses_translucent_white_text`.
+2. **`REMOTE_ADDR` default** (plan defect, Task 6 Step 1). Flask's test client
+   defaults to `127.0.0.1`, which satisfies the loopback gate, so the plan's
+   403 test asserted against a 200. The test now forges an external peer
+   address.
+3. **Malformed LDAP filter** (plan defect, Task 7 Step 3). `(cn=Till Support
+   (legacy))` is not a valid filter; `-ErrorAction SilentlyContinue` hid the
+   error, so the group-existence guard returned null on every run and the
+   idempotency re-run would have thrown on a duplicate group. Now RFC 4515
+   escaped.
+4. **`$badNames += $null`** (plan defect, Task 7 Step 1). Two pipelines that
+   yield `$null` on a clean domain each append a null element, giving
+   `Count -eq 2` and a false FAIL on the C1 assertion. Array is compacted.
+
+### Unrelated pre-existing bug fixed in passing
+
+`build/exploit/run-certifried-check.sh` was committed `100644` while every
+sibling script is `100755`, so `full-chain-replay.sh:115` died with
+"Permission denied". A Windows checkout with `core.fileMode=false` hid it.
+**Phase 7 had therefore never actually executed** -- earlier "all phases
+passed" records predate the phase working. Fixed in `609e00a`; the phase now
+genuinely passes.
