@@ -286,7 +286,7 @@ textarea.report:focus-visible {
   margin-top: 14px;
   font-size: 12px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--grey);
   letter-spacing: 0.01em;
 }
 
@@ -294,5 +294,70 @@ textarea.report:focus-visible {
   margin-top: 6px;
   font-size: 13px;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--grey);
+}
+
+.kpi-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 150px;
+  padding: 14px 18px;
+  background: var(--off);
+  border-left: 3px solid var(--orange);
+}
+
+.kpi-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--grey);
+}
+
+.kpi-value {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--black);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 26px;
+  font-size: 14px;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--grey);
+  border-bottom: 2px solid var(--black);
+}
+
+.data-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #e4e0db;
+  color: var(--black);
+}
+
+.notice {
+  padding: 16px 18px;
+  margin-bottom: 26px;
+  background: var(--off);
+  border-left: 3px solid var(--grey);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--black);
 }

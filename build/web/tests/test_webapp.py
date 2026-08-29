@@ -301,3 +301,23 @@ def test_branding_page_never_hints_at_a_network_position():
     body = client.get("/admin/branding").data.lower()
     for giveaway in (b"internal", b"loopback", b"127.0.0.1", b"localhost", b"reachable"):
         assert giveaway not in body
+
+
+def test_dashboard_renders_the_store_operations_content():
+    client = make_app().test_client()
+    with client.session_transaction() as sess:
+        sess["username"] = "jdoe"
+    body = client.get("/dashboard").data
+    assert b"DNR-001" in body
+    assert b"Covers today" in body
+
+
+def test_dashboard_shows_no_template_delimiters_to_the_player():
+    """No rendered surface in the box may display Jinja delimiters -- that
+    would disclose the template engine rather than reinforce a known hint."""
+    client = make_app().test_client()
+    with client.session_transaction() as sess:
+        sess["username"] = "jdoe"
+    body = client.get("/dashboard").data
+    for delimiter in (b"{{", b"}}", b"{%", b"%}"):
+        assert delimiter not in body

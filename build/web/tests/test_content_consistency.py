@@ -198,3 +198,29 @@ def test_dockerfile_ships_the_content_tree_before_chown():
     copy_at = dockerfile.index("COPY content/")
     chown_at = dockerfile.index("chown -R appuser:appuser")
     assert copy_at < chown_at
+
+
+TEMPLATES_DIR = REPO / "build" / "web" / "app" / "templates"
+
+
+def test_templates_reference_only_known_store_codes():
+    """Read as utf-8, not ascii: the spec's ASCII rule governs the content
+    this layer *adds* (directory attributes, CSV, SQL, documents). Template
+    markup predates it and login.html's <title> already carries a literal
+    em dash."""
+    known = {r["code"] for r in load_stores()}
+    for path in sorted(TEMPLATES_DIR.glob("*.html")):
+        for code in set(STORE_CODE_RE.findall(path.read_text(encoding="utf-8"))):
+            assert code in known, path.name
+
+
+def test_stylesheet_never_uses_translucent_white_text():
+    """The portal renders on `body { background: var(--white) }`, and its
+    secondary text uses var(--grey). Translucent white is invisible there;
+    it slipped in twice while building the dashboard and was caught by
+    review, not by a test."""
+    css = (REPO / "build" / "web" / "app" / "static" / "css" / "donerup.css").read_text(
+        encoding="utf-8"
+    )
+    assert "rgba(255, 255, 255" not in css
+    assert "rgba(255,255,255" not in css
