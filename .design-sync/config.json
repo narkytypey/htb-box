@@ -1,0 +1,11 @@
+{
+  "pkg": "@donerup/ui",
+  "globalName": "DonerupUI",
+  "shape": "package",
+  "buildCmd": "npm run build",
+  "srcDir": "src",
+  "cssEntry": "dist/index.css",
+  "overrides": {
+    "PortalBar": { "cardMode": "column" }
+  }
+}

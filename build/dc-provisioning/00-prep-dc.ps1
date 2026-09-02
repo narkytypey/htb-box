@@ -5,7 +5,8 @@
 .DESCRIPTION
   Does everything that must happen BEFORE 01-promote-dc.ps1:
     SKU sanity check -> static IP -> DNS -> Private profile -> ICMP rule
-    -> red-state domain check -> rename to DC01 and reboot.
+    -> red-state domain check -> en-US locale enforcement -> rename to DC01
+    and reboot.
   Addresses match build/network/config.env (DC_IP / AD_VLAN_HOST_IP).
 
 .PARAMETER LabMac
@@ -131,8 +132,17 @@ if (Test-Connection -ComputerName $Gateway -Count 2 -Quiet) { Say "gateway reach
 else { Say "gateway NOT reachable - check the VM is on VMnet3 and Kali is up" }
 
 # --- 5. Red-state check (plan Task 1, step 2) ---------------------------
-Import-Module ActiveDirectory -ErrorAction SilentlyContinue
-$domain = Get-ADDomain -ErrorAction SilentlyContinue
+# On a brand-new machine the ActiveDirectory module isn't installed yet (it
+# only shows up once AD-Domain-Services/RSAT tools land, e.g. via
+# 01-promote-dc.ps1's Install-ADDSForest). Get-ADDomain not being found is a
+# terminating CommandNotFoundException that -ErrorAction SilentlyContinue on
+# the Import-Module line does NOT suppress, so it must be gated behind a
+# module-availability check instead of just attempted under $ErrorActionPreference='Stop'.
+$domain = $null
+if (Get-Module -ListAvailable -Name ActiveDirectory -ErrorAction SilentlyContinue) {
+    Import-Module ActiveDirectory -ErrorAction SilentlyContinue
+    $domain = Get-ADDomain -ErrorAction SilentlyContinue
+}
 if ($domain -and $domain.DNSRoot -eq 'donerup.htb') {
     Say "PASS: domain donerup.htb is already up - skip 01-promote-dc.ps1"
 } else {
@@ -164,7 +174,19 @@ if (Test-Path $existingHistory) {
     Say "Removed pre-existing PSReadLine history at $existingHistory"
 }
 
-# --- 7. Rename and reboot ----------------------------------------------
+# --- 7. Locale compliance (HTB submission requirement) ------------------
+# HTB Machine Submission Requirements call for English (US) locale. Set
+# system locale, UI language, culture, and home location explicitly rather
+# than trusting the install media's default. SystemLocale only takes full
+# effect after a reboot, so this runs before the rename/restart in step 8.
+Say "Enforcing en-US system locale/culture"
+Set-WinSystemLocale -SystemLocale en-US
+Set-WinUserLanguageList -LanguageList en-US -Force
+Set-Culture en-US
+Set-WinHomeLocation -GeoId 244
+Say "Locale set to en-US (SystemLocale change applies after the reboot below)"
+
+# --- 8. Rename and reboot ----------------------------------------------
 if ($env:COMPUTERNAME -eq $NewName) {
     Say "Already named $NewName - no reboot needed. Run 01-promote-dc.ps1 next."
 } else {
